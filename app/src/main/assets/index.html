@@ -168,6 +168,7 @@ button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
       <label><input type="checkbox" id="p-not"> Bildirim</label>
       <label><input type="checkbox" id="p-ble"> Bluetooth</label>
       <label><input type="checkbox" id="p-usb"> USB</label>
+      <label><input type="checkbox" id="p-inst"> APK kurma</label>
     </div>
   </div>
 
@@ -1735,6 +1736,7 @@ ${dataTags}
   if (P.includes('cam')) permXml += '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />\n';
   if (P.includes('mic')) permXml += '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.microphone" android:required="false" />\n';
   if (P.includes('loc')) permXml += '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n';
+  if (P.includes('inst')) permXml += '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n';
   if (P.includes('not')) permXml += '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n';
   const hasBle = P.includes('ble'), hasUsb = P.includes('usb');
   if (hasBle) permXml += '    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n' + (P.includes('loc') ? '' : '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n') + '    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />\n';
@@ -2711,6 +2713,7 @@ function renderHome(){
 function fillActions(act, a){
   act.innerHTML = '';
   const dl = el('a', 'btn s', 'İndir'); dl.href = a.apkUrl; dl.rel = 'noopener';
+  hookDownload(dl, a.owner, a.repo, a.name, a.apkUrl);
   const ed = el('button', 'sec s', 'Düzenle'); ed.onclick = () => openEditor(a);
   const del = el('button', 'sec s danger', 'Sil'); del.onclick = () => askDelete(act, a);
   act.append(dl, ed, del);
@@ -2783,7 +2786,7 @@ function uniqueRepo(base){
   return r;
 }
 
-const PERM_KEYS = ['cam', 'mic', 'loc', 'not', 'ble', 'usb'];
+const PERM_KEYS = ['cam', 'mic', 'loc', 'not', 'ble', 'usb', 'inst'];
 function getPerms(){ return PERM_KEYS.filter(k => $('p-' + k).checked); }
 function setPerms(arr){ PERM_KEYS.forEach(k => { $('p-' + k).checked = arr.includes(k); }); }
 function detectPerms(t){
@@ -2800,6 +2803,7 @@ function detectPerms(t){
   if (new RegExp('new\\s+notifi' + 'cation\\s*\\(|notifi' + 'cation\\.request').test(t)) out.push('not');
   if (new RegExp('navigator\\.blue' + 'tooth').test(t)) out.push('ble');
   if (new RegExp('navigator\\.u' + 'sb').test(t)) out.push('usb');
+  if (new RegExp('vnd\\.android\\.package' + '-archive').test(t)) out.push('inst');
   return out;
 }
 function getTypes(){ return TYPE_KEYS.filter(k => $('t-' + k).checked); }
@@ -2973,6 +2977,7 @@ async function buildApk(){
 
     $('result').innerHTML = `<a class="btn" href="${apk.browser_download_url}">APK'yı indir</a><button class="sec" id="toHome">Ana ekrana dön</button><small style="text-align:center">APK debug imzalıdır. Listede “Düzenle” ile güncelleyebilirsin.</small>`;
     $('toHome').onclick = () => history.back();
+    hookDownload($('result').querySelector('a.btn'), owner, rname, name, apk.browser_download_url);
   } catch(e){
     log('Hata: ' + e.message, 'err');
   }
@@ -3081,6 +3086,34 @@ $('cOk').onclick = async () => {
 };
 $('icon').addEventListener('change', e => { const f = e.target.files[0]; if (f && f !== iconCurrent) openCrop(f); });
 $('icPrev').onclick = () => { const f = iconSrc || iconCurrent; if (f) openCrop(f); else $('icon').click(); };
+
+// ---- Uygulama içi APK indirme ----
+async function inAppDownload(owner, repo, name, fallback, el){
+  const old = el.textContent;
+  el.textContent = 'İndiriliyor…';
+  try {
+    token = getToken();
+    const rel = await gh('/repos/' + owner + '/' + repo + '/releases/latest');
+    const asset = (rel.assets || []).find(a => a.name.endsWith('.apk'));
+    if (!asset) throw new Error('APK bulunamadı');
+    const r = await fetch(asset.url, {headers: {Authorization: 'Bearer ' + token, Accept: 'application/octet-stream'}});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const b = await r.blob();
+    const file = (name || 'uygulama').replace(/[^\w.-]+/g, '_') + '.apk';
+    await window.__apkSaveBlob(new Blob([b], {type: 'application/vnd.android.package-archive'}), file);
+    el.textContent = old;
+  } catch(e){
+    el.textContent = old;
+    location.href = fallback;
+  }
+}
+function hookDownload(el, owner, repo, name, fallback){
+  el.addEventListener('click', e => {
+    if (!(window.AndroidFiles && window.__apkSaveBlob)) return;
+    e.preventDefault();
+    inAppDownload(owner, repo, name, fallback, el);
+  });
+}
 
 // ---- Başlangıç ----
 if (location.hash === '#new') location.hash = '';
