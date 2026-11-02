@@ -1,0 +1,3090 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML → APK (Direkt)</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--tx:#1d1d1b;--mut:#6b6a64;--bd:#dcdad2;--ac:#2f6f4f;--acx:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--card:#20201d;--tx:#eeede8;--mut:#9a9890;--bd:#3a3935;--ac:#5fb487;--acx:#0f1f17}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,sans-serif;padding-bottom:12px}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--bd);padding:6px 8px}
+main{max-width:560px;margin:0 auto;padding:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;margin-bottom:10px}
+label{display:block;font-size:12px;color:var(--mut);margin:8px 0 3px}
+.card>label:first-child{margin-top:0}
+input[type=text],input[type=password],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:14px;font-family:inherit}
+input[type=file]{font-size:12px;max-width:100%}
+textarea{min-height:96px;font:12px/1.4 ui-monospace,monospace;resize:vertical}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+button,a.btn{display:block;text-align:center;text-decoration:none;width:100%;padding:10px;border:0;border-radius:10px;background:var(--ac);color:var(--acx);font-size:15px;font-weight:600;margin-top:6px}
+button.sec{background:transparent;color:var(--tx);border:1px solid var(--bd);font-weight:500}
+button:disabled{opacity:.5}
+button.ib{background:none;border:0;color:var(--tx);width:auto;margin:0;padding:6px 8px;font-size:14px;font-weight:600}
+button.ib.t{color:var(--ac)}
+button.ib i{display:block;width:20px;height:2px;background:var(--tx);margin:4px 0;border-radius:2px}
+.row button,.row a.btn{margin-top:0}
+button.s,a.btn.s{display:block;width:auto;flex:1;padding:7px 6px;font-size:13px;margin:0}
+.danger{color:#c0392b!important;border-color:#c0392b!important}
+button.danger.f{background:#c0392b;color:#fff!important}
+.tabs{display:flex;gap:5px;margin-bottom:10px}
+.tabs button{margin:0;padding:7px 2px;font-size:13px;background:transparent;color:var(--tx);border:1px solid var(--bd);font-weight:500}
+.tabs button.on{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
+.panel{display:none}.panel.on{display:block}
+.vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.files{font-size:12px;color:var(--mut);margin-top:6px;word-break:break-all}
+.chk{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;color:var(--tx)}
+#log{font:12px/1.5 ui-monospace,monospace;margin-top:10px;word-break:break-word}
+#log div{padding:1px 0}.err{color:#c0392b}.ok{color:var(--ac)}
+small{color:var(--mut);display:block;margin-top:5px;font-size:11px}
+.banner{background:var(--card);border:1px dashed var(--ac);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13px}
+.msg{font-size:12px;color:var(--mut);margin-bottom:8px}
+.empty{text-align:center;color:var(--mut);padding:40px 10px}
+.app{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;margin-bottom:8px}
+.app .h{display:flex;align-items:center;gap:10px}
+.app .ic{flex:none;width:42px;height:42px;border-radius:11px;background:var(--ac);color:var(--acx);display:flex;align-items:center;justify-content:center;font:700 19px system-ui,sans-serif;overflow:hidden}
+.app .ic img{width:100%;height:100%;object-fit:cover}
+.app .info{flex:1;min-width:0}
+.app .info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app .info small{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app .act{display:flex;gap:6px;margin-top:8px;align-items:center}
+.app .q{flex:1;font-size:13px}
+.drawer{position:fixed;inset:0;z-index:40;display:flex}
+.drawer[hidden]{display:none}
+.dback{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.dpanel{position:relative;width:min(320px,86vw);background:var(--card);height:100%;padding:12px;overflow:auto;border-right:1px solid var(--bd)}
+.dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.st{font-size:12px;color:var(--mut);margin-top:6px;word-break:break-all}
+.dpanel a{color:var(--ac);font-size:13px;display:inline-block;margin:8px 0}
+.pv{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:50;overflow:auto;padding:16px;display:flex;justify-content:center}
+.pv[hidden]{display:none}
+.pv-box{width:100%;max-width:520px;margin:auto 0;text-align:center}
+.pv-head{display:flex;justify-content:space-between;align-items:center;color:#fff;margin-bottom:8px}
+.pv-head button{width:auto;margin:0;padding:8px 14px}
+.pv-note{color:#ddd;font-size:13px;margin-bottom:8px}
+.pv-wrap{margin:0 auto;position:relative}
+.phone{background:#111;border:10px solid #111;border-radius:36px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;transform-origin:top left}
+.sb{background:#000;color:#fff;font:600 12px/24px system-ui,sans-serif;display:flex;justify-content:space-between;padding:0 14px;flex:none;height:24px}
+.phone iframe{border:0;width:100%;background:#fff;flex:none;display:block}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;margin:14px 0 4px;color:#fff;font-size:13px}
+.tile .ic{width:56px;height:56px;border-radius:14px;background:var(--ac);color:var(--acx);display:flex;align-items:center;justify-content:center;font:700 26px system-ui,sans-serif;overflow:hidden}
+.tile .ic img{width:100%;height:100%;object-fit:cover}
+.drawer.bs{align-items:flex-end;justify-content:center}
+.sheet{position:relative;width:100%;max-width:560px;background:var(--card);border-radius:16px 16px 0 0;padding:14px 14px 18px}
+.sheet b{display:block;margin-bottom:6px;font-size:15px}
+.sheet button{text-align:left;padding:12px 14px}
+.sheet button small{color:inherit;opacity:.8;font-weight:400;margin-top:3px;font-size:12px}
+.types{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:2px}
+.types label{display:flex;align-items:center;gap:4px;margin:0;font-size:12px;color:var(--tx)}
+.icrow{display:flex;align-items:center;gap:6px}
+.icrow input{min-width:0;flex:1;font-size:11px}
+.icp{flex:none;width:34px;height:34px;border-radius:8px;border:1px dashed var(--bd);display:flex;align-items:center;justify-content:center;color:var(--mut);overflow:hidden;background:var(--bg);cursor:pointer}
+.icp img{width:100%;height:100%;object-fit:cover}
+#crop{align-items:center;justify-content:center}
+.cbox{position:relative;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;width:min(340px,94vw);text-align:center}
+.cbox canvas{display:block;margin:8px auto;border-radius:8px;touch-action:none}
+button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="ib" id="menuBtn" aria-label="Menü"><i></i><i></i><i></i></button>
+  <b id="ttl">APK'larım</b>
+  <button class="ib t" id="topAct">+ Yeni</button>
+</header>
+<main>
+<section id="home">
+  <div class="banner" id="noToken" hidden>Başlamak için sol üstteki ☰ menüsünden GitHub token'ını kaydet.</div>
+  <div class="msg" id="homeMsg"></div>
+  <div id="appList"></div>
+  <div class="empty" id="empty">Henüz APK oluşturmadın.<br>Sağ üstteki “+ Yeni” ile başla.</div>
+</section>
+
+<section id="editor" hidden>
+  <div class="banner" id="banner" hidden></div>
+  <div class="tabs">
+    <button data-m="file" class="on">Dosya</button>
+    <button data-m="paste">Yapıştır</button>
+    <button data-m="link">Link</button>
+    <button data-m="pdf">PDF</button>
+  </div>
+
+  <div class="card">
+    <div class="panel on" id="p-file">
+      <div class="row">
+        <button class="sec" id="pickFiles" style="margin:0">Dosya seç</button>
+        <button class="sec" id="pickDir" style="margin:0">Klasör seç</button>
+      </div>
+      <input type="file" id="fFiles" multiple class="vh">
+      <input type="file" id="fDir" webkitdirectory class="vh">
+      <div class="files" id="list">Henüz dosya seçilmedi.</div>
+      <label>Ana HTML</label>
+      <select id="main"></select>
+    </div>
+    <div class="panel" id="p-paste">
+      <textarea id="paste" placeholder="HTML kodunu buraya yapıştır…"></textarea>
+      <button class="sec" id="pasteBtn" style="margin-top:6px">Panodan yapıştır</button>
+    </div>
+    <div class="panel" id="p-link">
+      <input type="text" id="url" placeholder="https://ornek.com" autocapitalize="none" autocorrect="off">
+      <small>Uygulama bu siteyi açar; internet gerekir.</small>
+    </div>
+    <div class="panel" id="p-pdf">
+      <input type="file" id="pdf" accept="application/pdf">
+      <small>Sayfalar resme çevrilip alt alta gösterilir (en fazla 100 sayfa); bağlantılar çalışmaz.</small>
+    </div>
+  </div>
+
+  <div class="card" id="advCard">
+    <div class="row">
+      <div><label style="margin-top:0">Uygulama adı</label><input type="text" id="name" value="Uygulamam"></div>
+      <div style="flex:.45"><label style="margin-top:0">Sürüm</label><input type="text" id="ver" value="1.0"></div>
+    </div>
+    <label>Paket adı</label>
+    <input type="text" id="pkg" value="com.example.uygulamam" autocapitalize="none" autocorrect="off">
+    <div class="row">
+      <div><label>Yön</label>
+        <select id="ori"><option value="unspecified">Otomatik</option><option value="portrait">Dikey</option><option value="landscape">Yatay</option></select>
+      </div>
+      <div><label>İkon (dokun: kırp)</label><div class="icrow"><div class="icp" id="icPrev">+</div><input type="file" id="icon" accept="image/*"></div></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="full"> Tam ekran</label>
+    <label>Bu uygulamayla açılacak / paylaşılacak dosyalar</label>
+    <div class="types">
+      <label><input type="checkbox" id="t-pdf"> PDF</label>
+      <label><input type="checkbox" id="t-image"> Resim</label>
+      <label><input type="checkbox" id="t-text"> Metin</label>
+      <label><input type="checkbox" id="t-media"> Ses/Video</label>
+      <label><input type="checkbox" id="t-all"> Hepsi</label>
+    </div>
+    <label>İzinler</label>
+    <div class="types">
+      <label><input type="checkbox" id="p-cam"> Kamera</label>
+      <label><input type="checkbox" id="p-mic"> Mikrofon</label>
+      <label><input type="checkbox" id="p-loc"> Konum</label>
+      <label><input type="checkbox" id="p-not"> Bildirim</label>
+      <label><input type="checkbox" id="p-ble"> Bluetooth</label>
+      <label><input type="checkbox" id="p-usb"> USB</label>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="sec" id="prev">Önizleme</button>
+    <button id="go">APK oluştur</button>
+  </div>
+  <div id="log"></div>
+  <div id="result"></div>
+</section>
+</main>
+
+<div class="drawer" id="drawer" hidden>
+  <div class="dback" id="dBack"></div>
+  <aside class="dpanel">
+    <div class="dh"><b>Ayarlar</b><button class="ib t" id="dClose">Kapat</button></div>
+    <label>GitHub token</label>
+    <input type="password" id="tokIn" placeholder="ghp_..." autocomplete="off">
+    <button id="tokSave">Kaydet</button>
+    <div class="st" id="tokSt"></div>
+    <a href="https://github.com/settings/tokens/new?scopes=repo,workflow,delete_repo&description=apk" target="_blank" rel="noopener">Token oluştur (izinler hazır)</a>
+    <button class="sec danger" id="tokDel" hidden>Token'ı sil</button>
+    <label class="chk"><input type="checkbox" id="pubChk"> Depolar herkese açık olsun</label>
+    <small>Açıksa APK indirme bağlantısı giriş istemeden çalışır; yüklediğin dosyalar GitHub'da herkese görünür. Silme özelliği için token'da delete_repo izni gerekir.</small>
+  </aside>
+</div>
+
+<div class="drawer" id="crop" hidden>
+  <div class="dback"></div>
+  <div class="cbox">
+    <b>İkonu kırp</b>
+    <canvas id="cv"></canvas>
+    <input type="range" id="cz" min="0" max="100" value="50" style="width:100%;margin:2px 0 6px">
+    <div class="row">
+      <button class="sec s" data-sh="square">Kare</button>
+      <button class="sec s" data-sh="round">Yuvarlak köşe</button>
+      <button class="sec s" data-sh="circle">Daire</button>
+    </div>
+    <small>Sürükle, iki parmakla yakınlaştır veya kaydırıcıyı kullan.</small>
+    <div class="row" style="margin-top:8px"><button class="sec" id="cCancel">Vazgeç</button><button id="cOk">Uygula</button></div>
+  </div>
+</div>
+
+<div class="drawer bs" id="choice" hidden>
+  <div class="dback" id="chBack"></div>
+  <div class="sheet">
+    <b>Yeni APK</b>
+    <button id="chQuick">⚡ Hızlı oluştur<small>Sadece içeriği seç; ad, paket adı, ikon ve ayarları uygulama kendisi belirler.</small></button>
+    <button class="sec" id="chAdv">⚙ Gelişmiş oluştur<small>Ad, paket, sürüm, yön, ikon ve tam ekranı sen ayarla.</small></button>
+  </div>
+</div>
+
+<div class="pv" id="pv" hidden>
+  <div class="pv-box">
+    <div class="pv-head"><b>Önizleme</b><button class="sec" id="pvClose" style="color:#fff;border-color:#777">Kapat</button></div>
+    <div class="pv-note" id="pvNote"></div>
+    <div class="pv-wrap" id="phWrap">
+      <div class="phone" id="phone">
+        <div class="sb" id="sb"><span></span><span>100%</span></div>
+        <iframe id="pvFrame" title="Önizleme"></iframe>
+      </div>
+    </div>
+    <div class="tile"><div class="ic" id="pvIcon"></div><span id="pvName"></span></div>
+    <button id="pvGo">Güzel, APK oluştur</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const API = 'https://api.github.com';
+const LOCAL = 'file:///android_asset/index.html';
+let files = [], token = '', mode = 'file';
+
+// Paket adı otomatik
+let pkgEdited = false;
+function slugPkg(n){
+  const map = {'ç':'c','ğ':'g','ı':'i','ö':'o','ş':'s','ü':'u','Ç':'c','Ğ':'g','İ':'i','I':'i','Ö':'o','Ş':'s','Ü':'u'};
+  let s = n.replace(/[çğıöşüÇĞİIÖŞÜ]/g, c => map[c]).toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!s) s = 'uygulama';
+  if (/^[0-9]/.test(s)) s = 'app' + s;
+  const reserved = ['new','class','int','long','public','private','static','void','default','package','import','this','super','final','switch','case','if','else','for','while','do','try','catch','return','true','false','null'];
+  if (reserved.includes(s)) s = 'app' + s;
+  return s;
+}
+function syncPkg(){ if (!pkgEdited) $('pkg').value = 'com.example.' + slugPkg($('name').value); }
+$('name').addEventListener('input', syncPkg);
+$('pkg').addEventListener('input', () => { pkgEdited = true; });
+syncPkg();
+
+
+// Sekmeler
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  mode = b.dataset.m;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + mode));
+});
+
+function log(t, cls, replaceLast){
+  const l = $('log');
+  if (replaceLast && l.lastChild) { l.lastChild.textContent = t; l.lastChild.className = cls||''; return; }
+  const d = document.createElement('div'); d.textContent = t; d.className = cls||''; l.appendChild(d);
+}
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,"\\'");
+const jstr = s => s.replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function b64(data){
+  const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+async function gh(path, opt = {}){
+  const r = await fetch(API + path, {
+    ...opt,
+    headers: {'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+    body: opt.body ? JSON.stringify(opt.body) : undefined
+  });
+  let j = null; try { j = await r.json(); } catch(e){}
+  if (!r.ok) { const e = new Error((j && j.message) || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+  return j;
+}
+
+// Dosya modu
+function setFiles(list, fromDir){
+  files = [...list].map(f => {
+    const p = fromDir && f.webkitRelativePath ? f.webkitRelativePath.split('/').slice(1).join('/') : f.name;
+    return {path: p || f.name, file: f};
+  });
+  const htmls = files.filter(x => /\.html?$/i.test(x.path));
+  $('main').innerHTML = '';
+  htmls.forEach(h => { const o = document.createElement('option'); o.value = h.path; o.textContent = h.path; $('main').appendChild(o); });
+  const idx = htmls.find(h => h.path.toLowerCase() === 'index.html'); if (idx) $('main').value = idx.path;
+  $('list').textContent = files.length ? files.length + ' dosya: ' + files.slice(0,6).map(x=>x.path).join(', ') + (files.length>6?' …':'') : 'Henüz dosya seçilmedi.';
+}
+if (/; wv\)/.test(navigator.userAgent)) $('pickDir').style.display = 'none';
+// Android köprüsü (uygulama içinde yerel dosya seçici)
+let nativeResolve = null, nativeAcc = [];
+window.__nativeFile = (name, mime, b64) => {
+  const bin = atob(b64), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  nativeAcc.push(new File([u8], name, {type: mime || ''}));
+};
+window.__nativeDone = () => { const r = nativeResolve, a = nativeAcc; nativeResolve = null; nativeAcc = []; if (r) r(a); };
+function nativePick(accept, multiple){
+  return new Promise(res => { nativeResolve = res; nativeAcc = []; window.AndroidFiles.pick(accept || '', !!multiple); });
+}
+['pdf','icon'].forEach(id => $(id).addEventListener('click', async e => {
+  if (!window.AndroidFiles) return;
+  e.preventDefault();
+  const a = await nativePick($(id).accept, false);
+  if (a.length) { const dt = new DataTransfer(); dt.items.add(a[0]); $(id).files = dt.files; if (id === 'icon') openCrop(a[0]); }
+}));
+$('pickFiles').onclick = async () => {
+  if (window.AndroidFiles) { const a = await nativePick('', true); if (a.length) setFiles(a, false); }
+  else $('fFiles').click();
+};
+$('pickDir').onclick = () => $('fDir').click();
+$('fFiles').onchange = e => setFiles(e.target.files, false);
+$('fDir').onchange = e => setFiles(e.target.files, true);
+
+// Yapıştır modu
+$('pasteBtn').onclick = async () => {
+  try { $('paste').value = await navigator.clipboard.readText(); }
+  catch(e){ log('Panoya erişilemedi; kutuya basılı tutup yapıştır.', 'err'); }
+};
+
+// PDF modu
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.onload = res;
+    s.onerror = () => rej(new Error('pdf.js yüklenemedi (internet bağlantısını kontrol et).'));
+    document.head.appendChild(s);
+  });
+}
+async function pdfToAssets(file, max){
+  const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  log('PDF okuyucu yükleniyor…');
+  if (!window.pdfjsLib) await loadScript(base + 'pdf.min.js');
+  const wsrc = await (await fetch(base + 'pdf.worker.min.js')).text();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([wsrc], {type:'text/javascript'}));
+  const pdf = await pdfjsLib.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise;
+  const total = pdf.numPages;
+  if (!max && total > 100) throw new Error('PDF ' + total + ' sayfa; en fazla 100 sayfa destekleniyor.');
+  const n = max ? Math.min(total, max) : total;
+  const assets = [], imgs = [];
+  for (let p = 1; p <= n; p++) {
+    log(`PDF sayfası ${p}/${n}`, '', p > 1);
+    const page = await pdf.getPage(p);
+    const w0 = page.getViewport({scale:1}).width;
+    const vp = page.getViewport({scale: Math.min(3, 1400 / w0)});
+    const c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({canvasContext: ctx, viewport: vp}).promise;
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+    const path = 'pages/p' + String(p).padStart(3, '0') + '.jpg';
+    assets.push({path, content: await blob.arrayBuffer()});
+    imgs.push(`<img src="${path}">`);
+    c.width = 0; c.height = 0;
+  }
+  log('PDF sayfaları hazır', 'ok', true);
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#333}img{display:block;width:100%;height:auto;margin:0 0 4px}</style></head><body>${imgs.join('')}</body></html>`;
+  assets.push({path:'index.html', content: html});
+  return assets;
+}
+
+// Girdiyi topla
+function checkSecret(t){
+  if (/gh[pousr]_[A-Za-z0-9]{30,}/.test(t)) throw new Error("Seçtiğin dosyanın içinde GitHub token'ı var. Herkese açık depoya yüklenirse GitHub token'ı otomatik iptal eder; token'sız bir dosya seç.");
+}
+async function collectInput(){
+  if (mode === 'file') {
+    const main = $('main').value;
+    if (!files.length || !main) throw new Error('HTML dosyası seçilmedi.');
+    const assets = [];
+    for (const f of files) if (/\.(html?|js)$/i.test(f.path)) checkSecret(await f.file.text());
+    for (const f of files) {
+      if (f.path === main) assets.push({path:'index.html', content: await f.file.arrayBuffer()});
+      else if (f.path !== 'index.html') assets.push({path:f.path, content: await f.file.arrayBuffer()});
+    }
+    return {assets, startUrl: LOCAL};
+  }
+  if (mode === 'paste') {
+    const t = $('paste').value;
+    if (!t.trim()) throw new Error('HTML kodu yapıştırılmadı.');
+    checkSecret(t);
+    return {assets:[{path:'index.html', content:t}], startUrl: LOCAL};
+  }
+  if (mode === 'link') {
+    let u = $('url').value.trim();
+    if (!u) throw new Error('Site adresi girilmedi.');
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    try { new URL(u); } catch(e){ throw new Error('Site adresi geçersiz.'); }
+    return {assets:[], startUrl: u};
+  }
+  const f = $('pdf').files[0];
+  if (!f) throw new Error('PDF seçilmedi.');
+  return {assets: await pdfToAssets(f), startUrl: LOCAL};
+}
+
+const SHIM_JS = `(function(){
+  var A = window.AndroidFiles;
+  if (!A || window.__apkShim) return;
+  window.__apkShim = true;
+
+  function b64(file){
+    return new Promise(function(res, rej){
+      var r = new FileReader();
+      r.onload = function(){ res(String(r.result).split(',')[1] || ''); };
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  try {
+    Object.defineProperty(navigator, 'canShare', {configurable: true, writable: true, value: function(d){
+      return !!d && ((d.files && d.files.length > 0) || !!d.text || !!d.url || !!d.title);
+    }});
+    Object.defineProperty(navigator, 'share', {configurable: true, writable: true, value: async function(d){
+      d = d || {};
+      var out = [];
+      if (d.files) {
+        for (var i = 0; i < d.files.length; i++) {
+          var f = d.files[i];
+          out.push({n: f.name || ('file' + i), m: f.type || 'application/octet-stream', b: await b64(f)});
+        }
+      }
+      A.share(d.title || '', d.text || '', d.url || '', JSON.stringify(out));
+    }});
+  } catch(e){}
+  window.print = function(){ A.print(); };
+
+  try {
+    var orig = navigator.clipboard;
+    var clip = {
+      writeText: function(t){ A.copy(String(t)); return Promise.resolve(); },
+      readText: function(){ return Promise.resolve(A.paste()); },
+      write: function(items){
+        if (orig && orig.write) return orig.write(items);
+        return Promise.reject(new Error('Desteklenmiyor'));
+      },
+      read: function(){
+        if (orig && orig.read) return orig.read();
+        return Promise.reject(new Error('Desteklenmiyor'));
+      }
+    };
+    Object.defineProperty(navigator, 'clipboard', {configurable: true, value: clip});
+  } catch(e){}
+  try {
+    var wl = {request: function(){
+      A.keepAwake(true);
+      var sentinel = {released: false, type: 'screen', addEventListener: function(){}, removeEventListener: function(){},
+        release: function(){ A.keepAwake(false); this.released = true; return Promise.resolve(); }};
+      return Promise.resolve(sentinel);
+    }};
+    Object.defineProperty(navigator, 'wakeLock', {configurable: true, value: wl});
+  } catch(e){}
+
+  try {
+    var NS = function(title, opts){
+      opts = opts || {};
+      A.showNote(String(title), String(opts.body || ''), String(opts.tag || ''));
+      this.title = String(title);
+      this.body = opts.body || '';
+      this.close = function(){};
+      this.addEventListener = function(){};
+      this.removeEventListener = function(){};
+    };
+    NS.permission = A.notifPerm();
+    NS.requestPermission = function(cb){
+      return new Promise(function(res){
+        window.__notifResolve = function(p){ NS.permission = p; if (cb) cb(p); res(p); };
+        A.notifRequest();
+      });
+    };
+    Object.defineProperty(window, 'Notification', {configurable: true, writable: true, value: NS});
+  } catch(e){}
+
+  try {
+    window.showSaveFilePicker = function(opts){
+      opts = opts || {};
+      var name = opts.suggestedName || 'dosya', mime = 'application/octet-stream', chunks = [];
+      try { mime = Object.keys(opts.types[0].accept)[0] || mime; } catch(e){}
+      var handle = {kind: 'file', name: name};
+      handle.getFile = function(){ return Promise.resolve(new File(chunks, name, {type: mime})); };
+      handle.createWritable = function(){
+        chunks = [];
+        return Promise.resolve({
+          write: function(d){ if (d && d.type === 'write') d = d.data; chunks.push(d); return Promise.resolve(); },
+          close: function(){ var b = new Blob(chunks, {type: mime}); return b64(b).then(function(x){ A.saveBlob(name, mime, x); }); },
+          abort: function(){ chunks = []; return Promise.resolve(); }
+        });
+      };
+      return Promise.resolve(handle);
+    };
+    window.showOpenFilePicker = function(opts){
+      opts = opts || {};
+      return new Promise(function(res, rej){
+        var inp = document.createElement('input');
+        inp.type = 'file';
+        inp.multiple = !!opts.multiple;
+        var acc = [];
+        (opts.types || []).forEach(function(t){
+          Object.keys(t.accept || {}).forEach(function(m){ acc.push(m); (t.accept[m] || []).forEach(function(x){ acc.push(x); }); });
+        });
+        if (acc.length) inp.accept = acc.join(',');
+        inp.onchange = function(){
+          var hs = Array.prototype.map.call(inp.files, function(f){
+            return {kind: 'file', name: f.name, getFile: function(){ return Promise.resolve(f); }};
+          });
+          if (hs.length) res(hs); else rej(new DOMException('Iptal', 'AbortError'));
+        };
+        inp.addEventListener('cancel', function(){ rej(new DOMException('Iptal', 'AbortError')); });
+        inp.click();
+      });
+    };
+  } catch(e){}
+
+  var blobs = {}, blobOrder = [];
+  try {
+    var oCreate = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = function(o){
+      var u = oCreate(o);
+      if (o instanceof Blob) {
+        blobs[u] = o; blobOrder.push(u);
+        while (blobOrder.length > 30) delete blobs[blobOrder.shift()];
+      }
+      return u;
+    };
+  } catch(e){}
+  function saveBlobObj(blob, name){
+    var mime = blob.type || 'application/octet-stream';
+    var id = 'd' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    A.beginSave(id, name, mime);
+    var CH = 393216, pos = 0;
+    function next(){
+      if (pos >= blob.size) { A.endSave(id); return Promise.resolve(); }
+      var part = blob.slice(pos, pos + CH);
+      pos += CH;
+      return b64(part).then(function(x){ A.chunkSave(id, x); return next(); });
+    }
+    return next();
+  }
+  window.__apkSaveBlob = saveBlobObj;
+  function nameFor(a, blob){
+    var n = a.getAttribute('download') || '';
+    if (!n) { try { n = decodeURIComponent((a.href || '').split('?')[0].split('/').pop()); } catch(e){} }
+    if (!n || n.indexOf('blob:') === 0) n = 'dosya';
+    if (n.indexOf('.') < 0) {
+      var ext = {'application/pdf': '.pdf', 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'text/plain': '.txt', 'text/html': '.html', 'application/json': '.json', 'text/csv': '.csv'}[blob.type];
+      if (ext) n += ext;
+    }
+    return n;
+  }
+  function fetchSave(a){
+    fetch(a.href).then(function(r){ return r.blob(); }).then(function(b){ saveBlobObj(b, nameFor(a, b)); });
+  }
+  function handleAnchor(a){
+    if (!a || !a.hasAttribute || !a.hasAttribute('download')) return false;
+    var h = a.href || '';
+    if (h.indexOf('blob:') === 0) {
+      var blob = blobs[h];
+      if (blob) saveBlobObj(blob, nameFor(a, blob)); else fetchSave(a);
+      return true;
+    }
+    if (h.indexOf('data:') === 0 || h.indexOf('file:') === 0) { fetchSave(a); return true; }
+    return false;
+  }
+  try {
+    var oClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function(){ if (handleAnchor(this)) return; return oClick.call(this); };
+    var oDisp = HTMLAnchorElement.prototype.dispatchEvent;
+    HTMLAnchorElement.prototype.dispatchEvent = function(ev){
+      if (ev && ev.type === 'click' && handleAnchor(this)) return true;
+      return oDisp.call(this, ev);
+    };
+    document.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (a && handleAnchor(a)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    var oOpen = window.open;
+    window.open = function(u){
+      if (typeof u === 'string' && (u.indexOf('blob:') === 0 || u.indexOf('data:') === 0)) {
+        var a = document.createElement('a');
+        a.href = u; a.setAttribute('download', '');
+        handleAnchor(a);
+        return null;
+      }
+      return oOpen.apply(window, arguments);
+    };
+  } catch(e){}
+
+  var inc = [];
+  function accepts(inp, f){
+    var a = (inp.getAttribute('accept') || '').toLowerCase();
+    if (!a) return true;
+    var n = f.name.toLowerCase(), t = (f.type || '').toLowerCase();
+    return a.split(',').some(function(p){
+      p = p.trim();
+      if (!p) return false;
+      if (p.charAt(0) === '.') return n.slice(-p.length) === p;
+      if (p.slice(-2) === '/*') return t.indexOf(p.slice(0, -1)) === 0;
+      return t === p;
+    });
+  }
+  function deliver(files){
+    var ev = new CustomEvent('apkfile', {detail: {files: files, file: files[0]}, cancelable: true});
+    window.dispatchEvent(ev);
+    if (ev.defaultPrevented) return;
+    var ins = document.querySelectorAll('input[type=file]'), target = null;
+    for (var i = 0; i < ins.length && !target; i++) { if (accepts(ins[i], files[0])) target = ins[i]; }
+    if (!target) return;
+    try {
+      var dt = new DataTransfer();
+      for (var j = 0; j < files.length; j++) { if (target.multiple || j === 0) dt.items.add(files[j]); }
+      target.files = dt.files;
+      target.dispatchEvent(new Event('input', {bubbles: true}));
+      target.dispatchEvent(new Event('change', {bubbles: true}));
+    } catch(e){}
+  }
+  window.__incomingFile = function(name, mime, b){
+    var bin = atob(b), u8 = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    inc.push(new File([u8], name, {type: mime || ''}));
+  };
+  window.__incomingDone = function(){
+    var files = inc; inc = [];
+    if (files.length) deliver(files);
+  };
+  window.__incomingText = function(t){
+    window.dispatchEvent(new CustomEvent('apktext', {detail: {text: t}}));
+  };
+})();
+`;
+const BLE_SHIM = `
+(function(){
+  var B = window.AndroidBle;
+  if (!B || navigator['bluetooth']) return;
+  var pend = {}, seq = 0, devs = {}, chain = Promise.resolve();
+  window.__bleReply = function(rid, ok, payload){
+    var p = pend[rid];
+    if (!p) return;
+    delete pend[rid];
+    if (ok) p.res(payload); else p.rej(new Error(payload));
+  };
+  function call(fn){
+    var p = chain.then(function(){
+      return new Promise(function(res, rej){ var rid = 'b' + (++seq); pend[rid] = {res: res, rej: rej}; fn(rid); });
+    });
+    chain = p.catch(function(){});
+    return p;
+  }
+  function uuid(u){
+    if (typeof u === 'number') u = u.toString(16);
+    u = String(u).toLowerCase();
+    if (u.length <= 8 && u.indexOf('-') < 0) { while (u.length < 8) u = '0' + u; return u + '-0000-1000-8000-00805f9b34fb'; }
+    return u;
+  }
+  function toDV(b){ var bin = atob(b), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new DataView(u.buffer); }
+  function toB64(buf){
+    var u = buf instanceof ArrayBuffer ? new Uint8Array(buf) : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    var s = ''; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+    return btoa(s);
+  }
+  function target(o){
+    var f = document.createDocumentFragment();
+    o.addEventListener = f.addEventListener.bind(f);
+    o.removeEventListener = f.removeEventListener.bind(f);
+    o.emit = function(type){
+      var ev = new Event(type);
+      try { Object.defineProperty(ev, 'target', {value: o}); } catch(e){}
+      f.dispatchEvent(ev);
+    };
+  }
+  function Char(dev, svc, id){
+    var self = this; target(self);
+    self.uuid = id; self.service = svc; self.value = null;
+    self.readValue = function(){ return call(function(r){ B.read(r, dev.id, svc.uuid, id); }).then(function(p){ self.value = toDV(p); return self.value; }); };
+    self.writeValue = function(v){ return call(function(r){ B.write(r, dev.id, svc.uuid, id, toB64(v), true); }); };
+    self.writeValueWithResponse = self.writeValue;
+    self.writeValueWithoutResponse = function(v){ return call(function(r){ B.write(r, dev.id, svc.uuid, id, toB64(v), false); }); };
+    self.startNotifications = function(){
+      dev._chars[svc.uuid + '|' + id] = self;
+      return call(function(r){ B.notifyChar(r, dev.id, svc.uuid, id, true); }).then(function(){ return self; });
+    };
+    self.stopNotifications = function(){ return call(function(r){ B.notifyChar(r, dev.id, svc.uuid, id, false); }).then(function(){ return self; }); };
+  }
+  function Service(dev, id){
+    var self = this;
+    self.uuid = id; self.device = dev;
+    self.getCharacteristic = function(c){
+      c = uuid(c);
+      if (!B.hasChar(dev.id, id, c)) return Promise.reject(new Error('Karakteristik bulunamadi'));
+      return Promise.resolve(new Char(dev, self, c));
+    };
+  }
+  function Device(info){
+    var self = this; target(self);
+    self.id = info.id; self.name = info.name || null; self._chars = {};
+    var server = {device: self, connected: false};
+    server.connect = function(){ return call(function(r){ B.connect(r, self.id); }).then(function(){ server.connected = true; return server; }); };
+    server.disconnect = function(){ B.disconnect(self.id); server.connected = false; };
+    server.getPrimaryService = function(s){
+      s = uuid(s);
+      if (!B.hasService(self.id, s)) return Promise.reject(new Error('Servis bulunamadi'));
+      return Promise.resolve(new Service(self, s));
+    };
+    self.gatt = server;
+  }
+  window.__bleDisc = function(id){ var d = devs[id]; if (d) { d.gatt.connected = false; d.emit('gattserverdisconnected'); } };
+  window.__bleNotify = function(id, svc, chr, b){
+    var d = devs[id], c = d && d._chars[svc + '|' + chr];
+    if (c) { c.value = toDV(b); c.emit('characteristicvaluechanged'); }
+  };
+  var api = {
+    getAvailability: function(){ return Promise.resolve(true); },
+    requestDevice: function(o){
+      o = o || {};
+      var f = (o.filters || []).map(function(x){
+        var y = {};
+        if (x.name) y.name = x.name;
+        if (x.namePrefix) y.namePrefix = x.namePrefix;
+        if (x.services) y.services = x.services.map(uuid);
+        return y;
+      });
+      var opts = JSON.stringify({acceptAllDevices: !!o.acceptAllDevices, filters: f});
+      return call(function(r){ B.request(r, opts); }).then(function(p){
+        var info = JSON.parse(p);
+        return devs[info.id] || (devs[info.id] = new Device(info));
+      });
+    }
+  };
+  try { Object.defineProperty(navigator, 'bluetooth', {configurable: true, value: api}); } catch(e){}
+})();
+`;
+const USB_SHIM = `
+(function(){
+  var U = window.AndroidUsb;
+  if (!U || navigator['usb']) return;
+  var pend = {}, seq = 0, cache = {}, chain = Promise.resolve();
+  window.__usbReply = function(rid, ok, payload){
+    var p = pend[rid];
+    if (!p) return;
+    delete pend[rid];
+    if (ok) p.res(payload); else p.rej(new Error(payload));
+  };
+  function call(fn){
+    var p = chain.then(function(){
+      return new Promise(function(res, rej){ var rid = 'u' + (++seq); pend[rid] = {res: res, rej: rej}; fn(rid); });
+    });
+    chain = p.catch(function(){});
+    return p;
+  }
+  function toDV(b){ var bin = atob(b), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new DataView(u.buffer); }
+  function toB64(buf){
+    if (!buf) return '';
+    var u = buf instanceof ArrayBuffer ? new Uint8Array(buf) : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    var s = ''; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+    return btoa(s);
+  }
+  function Dev(info){
+    for (var k in info) this[k] = info[k];
+    this.opened = false;
+    this.configuration = (info.configurations && info.configurations[0]) || null;
+  }
+  Dev.prototype.open = function(){ var s = this; return call(function(r){ U.open(r, s.id); }).then(function(){ s.opened = true; }); };
+  Dev.prototype.close = function(){ U.close(this.id); this.opened = false; return Promise.resolve(); };
+  Dev.prototype.selectConfiguration = function(){ return Promise.resolve(); };
+  Dev.prototype.selectAlternateInterface = function(){ return Promise.resolve(); };
+  Dev.prototype.reset = function(){ return Promise.resolve(); };
+  Dev.prototype.claimInterface = function(n){ var s = this; return call(function(r){ U.claim(r, s.id, n); }).then(function(){}); };
+  Dev.prototype.releaseInterface = function(n){ var s = this; return call(function(r){ U.release(r, s.id, n); }).then(function(){}); };
+  Dev.prototype.transferOut = function(ep, data){
+    var s = this;
+    return call(function(r){ U.transferOut(r, s.id, ep, toB64(data)); }).then(function(p){ return JSON.parse(p); });
+  };
+  Dev.prototype.transferIn = function(ep, len){
+    var s = this;
+    return call(function(r){ U.transferIn(r, s.id, ep, len); }).then(function(p){
+      var o = JSON.parse(p);
+      return {status: o.status, data: o.data ? toDV(o.data) : new DataView(new ArrayBuffer(0))};
+    });
+  };
+  Dev.prototype.controlTransferOut = function(setup, data){
+    var s = this;
+    return call(function(r){ U.controlOut(r, s.id, JSON.stringify(setup), toB64(data)); }).then(function(p){ return JSON.parse(p); });
+  };
+  Dev.prototype.controlTransferIn = function(setup, len){
+    var s = this;
+    return call(function(r){ U.controlIn(r, s.id, JSON.stringify(setup), len); }).then(function(p){
+      var o = JSON.parse(p);
+      return {status: o.status, data: o.data ? toDV(o.data) : new DataView(new ArrayBuffer(0))};
+    });
+  };
+  function wrap(info){ return cache[info.id] || (cache[info.id] = new Dev(info)); }
+  var api = {
+    getDevices: function(){ return Promise.resolve(JSON.parse(U.devices()).map(wrap)); },
+    requestDevice: function(o){
+      var f = JSON.stringify((o && o.filters) || []);
+      return call(function(r){ U.request(r, f); }).then(function(p){ return wrap(JSON.parse(p)); });
+    },
+    addEventListener: function(){},
+    removeEventListener: function(){}
+  };
+  try { Object.defineProperty(navigator, 'usb', {configurable: true, value: api}); } catch(e){}
+})();
+`;
+const bleJava = pkg => `package ${pkg};
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ParcelUuid;
+import android.util.Base64;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.UUID;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class BleBridge {
+    private static final int REQ = 2001;
+    private static final UUID CCC = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+    private final Activity act;
+    private final WebView web;
+    private final Handler ui = new Handler(Looper.getMainLooper());
+    private final HashMap<String, BluetoothGatt> gatts = new HashMap<String, BluetoothGatt>();
+    private final HashMap<String, BluetoothDevice> found = new HashMap<String, BluetoothDevice>();
+    private final HashMap<String, String> opRid = new HashMap<String, String>();
+    private Runnable afterPerm = null;
+    private String afterRid = null;
+
+    public BleBridge(Activity a, WebView w) {
+        act = a;
+        web = w;
+    }
+
+    private void js(final String code) {
+        act.runOnUiThread(new Runnable() {
+            public void run() { web.evaluateJavascript(code, null); }
+        });
+    }
+
+    private void reply(String rid, boolean ok, String payload) {
+        js("window.__bleReply(" + JSONObject.quote(rid) + "," + (ok ? "true" : "false") + "," + JSONObject.quote(payload == null ? "" : payload) + ")");
+    }
+
+    private String[] missing() {
+        ArrayList<String> m = new ArrayList<String>();
+        if (Build.VERSION.SDK_INT >= 31) {
+            if (act.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) m.add(Manifest.permission.BLUETOOTH_SCAN);
+            if (act.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) m.add(Manifest.permission.BLUETOOTH_CONNECT);
+        } else if (Build.VERSION.SDK_INT >= 23) {
+            if (act.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) m.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        return m.toArray(new String[0]);
+    }
+
+    private void withPerms(String rid, Runnable r) {
+        String[] miss = missing();
+        if (miss.length == 0) {
+            r.run();
+            return;
+        }
+        afterPerm = r;
+        afterRid = rid;
+        act.requestPermissions(miss, REQ);
+    }
+
+    public void onPermissionResult(int code, int[] results) {
+        if (code != REQ) return;
+        boolean ok = results.length > 0;
+        for (int g : results) {
+            if (g != PackageManager.PERMISSION_GRANTED) ok = false;
+        }
+        Runnable r = afterPerm;
+        String rid = afterRid;
+        afterPerm = null;
+        afterRid = null;
+        if (r == null) return;
+        if (ok) r.run(); else reply(rid, false, "Bluetooth izni verilmedi");
+    }
+
+    public void shutdown() {
+        for (BluetoothGatt g : gatts.values()) {
+            try { g.close(); } catch (Exception e) { }
+        }
+        gatts.clear();
+    }
+
+    private String nameOf(BluetoothDevice d) {
+        try { return d.getName(); } catch (Exception e) { return null; }
+    }
+
+    private boolean matches(JSONArray filters, String name, ScanResult r) {
+        if (filters == null || filters.length() == 0) return true;
+        try {
+            for (int i = 0; i < filters.length(); i++) {
+                JSONObject f = filters.getJSONObject(i);
+                boolean ok = true;
+                if (f.has("name") && !f.getString("name").equals(name)) ok = false;
+                if (f.has("namePrefix") && (name == null || !name.startsWith(f.getString("namePrefix")))) ok = false;
+                if (f.has("services")) {
+                    JSONArray sv = f.getJSONArray("services");
+                    for (int k = 0; k < sv.length(); k++) {
+                        UUID u = UUID.fromString(sv.getString(k));
+                        boolean has = false;
+                        if (r.getScanRecord() != null && r.getScanRecord().getServiceUuids() != null) {
+                            for (ParcelUuid pu : r.getScanRecord().getServiceUuids()) {
+                                if (pu.getUuid().equals(u)) has = true;
+                            }
+                        }
+                        if (!has) ok = false;
+                    }
+                }
+                if (ok) return true;
+            }
+        } catch (Exception e) {
+            return true;
+        }
+        return false;
+    }
+
+    @JavascriptInterface
+    public void request(final String rid, final String optsJson) {
+        act.runOnUiThread(new Runnable() {
+            public void run() {
+                withPerms(rid, new Runnable() {
+                    public void run() { startScan(rid, optsJson); }
+                });
+            }
+        });
+    }
+
+    private void startScan(final String rid, String optsJson) {
+        try {
+            BluetoothManager bm = (BluetoothManager) act.getSystemService(Context.BLUETOOTH_SERVICE);
+            BluetoothAdapter ad = bm == null ? null : bm.getAdapter();
+            if (ad == null || !ad.isEnabled()) {
+                reply(rid, false, "Bluetooth kapali");
+                return;
+            }
+            final BluetoothLeScanner sc = ad.getBluetoothLeScanner();
+            if (sc == null) {
+                reply(rid, false, "Bluetooth tarayici yok");
+                return;
+            }
+            JSONObject opts = new JSONObject(optsJson);
+            final boolean all = opts.optBoolean("acceptAllDevices", false);
+            final JSONArray filters = opts.optJSONArray("filters");
+            final ArrayList<BluetoothDevice> devs = new ArrayList<BluetoothDevice>();
+            final ArrayList<String> labels = new ArrayList<String>();
+            final ScanCallback scb = new ScanCallback() {
+                @Override
+                public void onScanResult(int type, ScanResult r) {
+                    BluetoothDevice d = r.getDevice();
+                    if (devs.contains(d)) return;
+                    String name = nameOf(d);
+                    if (!all && !matches(filters, name, r)) return;
+                    devs.add(d);
+                    labels.add(((name == null || name.length() == 0) ? "(adsiz)" : name) + "  " + d.getAddress());
+                }
+            };
+            sc.startScan(scb);
+            ui.postDelayed(new Runnable() {
+                public void run() {
+                    try { sc.stopScan(scb); } catch (Exception e) { }
+                    if (devs.isEmpty()) {
+                        reply(rid, false, "Cihaz bulunamadi");
+                        return;
+                    }
+                    new AlertDialog.Builder(act).setTitle("Bluetooth cihazi sec")
+                        .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dlg, int which) {
+                                BluetoothDevice d = devs.get(which);
+                                found.put(d.getAddress(), d);
+                                try {
+                                    JSONObject o = new JSONObject();
+                                    o.put("id", d.getAddress());
+                                    o.put("name", nameOf(d));
+                                    reply(rid, true, o.toString());
+                                } catch (Exception e) {
+                                    reply(rid, false, String.valueOf(e));
+                                }
+                            }
+                        })
+                        .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                            public void onCancel(DialogInterface dlg) { reply(rid, false, "Iptal edildi"); }
+                        })
+                        .show();
+                }
+            }, 4000);
+        } catch (Exception e) {
+            reply(rid, false, String.valueOf(e));
+        }
+    }
+
+    private final BluetoothGattCallback cb = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt g, int status, int newState) {
+            String id = g.getDevice().getAddress();
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                try { g.discoverServices(); } catch (Exception e) { }
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                String rid = opRid.remove(id);
+                if (rid != null) reply(rid, false, "Baglanti kesildi");
+                js("window.__bleDisc(" + JSONObject.quote(id) + ")");
+                try { g.close(); } catch (Exception e) { }
+                gatts.remove(id);
+            }
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt g, int status) {
+            String rid = opRid.remove(g.getDevice().getAddress());
+            if (rid != null) reply(rid, status == BluetoothGatt.GATT_SUCCESS, status == BluetoothGatt.GATT_SUCCESS ? "ok" : "Servisler bulunamadi");
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt g, BluetoothGattCharacteristic c, int status) {
+            String rid = opRid.remove(g.getDevice().getAddress());
+            if (rid == null) return;
+            byte[] v = c.getValue();
+            reply(rid, status == BluetoothGatt.GATT_SUCCESS, v == null ? "" : Base64.encodeToString(v, Base64.NO_WRAP));
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt g, BluetoothGattCharacteristic c, int status) {
+            String rid = opRid.remove(g.getDevice().getAddress());
+            if (rid != null) reply(rid, status == BluetoothGatt.GATT_SUCCESS, status == BluetoothGatt.GATT_SUCCESS ? "ok" : "Yazma basarisiz");
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt g, BluetoothGattDescriptor d, int status) {
+            String rid = opRid.remove(g.getDevice().getAddress());
+            if (rid != null) reply(rid, status == BluetoothGatt.GATT_SUCCESS, status == BluetoothGatt.GATT_SUCCESS ? "ok" : "Bildirim acilamadi");
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt g, BluetoothGattCharacteristic c) {
+            byte[] v = c.getValue();
+            js("window.__bleNotify(" + JSONObject.quote(g.getDevice().getAddress()) + "," + JSONObject.quote(c.getService().getUuid().toString())
+                    + "," + JSONObject.quote(c.getUuid().toString()) + ",'" + (v == null ? "" : Base64.encodeToString(v, Base64.NO_WRAP)) + "')");
+        }
+    };
+
+    @JavascriptInterface
+    public void connect(final String rid, final String id) {
+        act.runOnUiThread(new Runnable() {
+            public void run() {
+                withPerms(rid, new Runnable() {
+                    public void run() { doConnect(rid, id); }
+                });
+            }
+        });
+    }
+
+    private void doConnect(String rid, String id) {
+        try {
+            BluetoothDevice d = found.get(id);
+            if (d == null) {
+                reply(rid, false, "Cihaz bilinmiyor");
+                return;
+            }
+            opRid.put(id, rid);
+            BluetoothGatt g;
+            if (Build.VERSION.SDK_INT >= 23) g = d.connectGatt(act, false, cb, BluetoothDevice.TRANSPORT_LE);
+            else g = d.connectGatt(act, false, cb);
+            gatts.put(id, g);
+        } catch (Exception e) {
+            reply(rid, false, String.valueOf(e));
+        }
+    }
+
+    @JavascriptInterface
+    public void disconnect(String id) {
+        BluetoothGatt g = gatts.get(id);
+        if (g != null) {
+            try { g.disconnect(); } catch (Exception e) { }
+        }
+    }
+
+    private BluetoothGattCharacteristic findChar(String id, String svc, String chr) {
+        try {
+            BluetoothGatt g = gatts.get(id);
+            if (g == null || g.getService(UUID.fromString(svc)) == null) return null;
+            return g.getService(UUID.fromString(svc)).getCharacteristic(UUID.fromString(chr));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @JavascriptInterface
+    public boolean hasService(String id, String svc) {
+        try {
+            BluetoothGatt g = gatts.get(id);
+            return g != null && g.getService(UUID.fromString(svc)) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public boolean hasChar(String id, String svc, String chr) {
+        return findChar(id, svc, chr) != null;
+    }
+
+    @JavascriptInterface
+    public void read(String rid, String id, String svc, String chr) {
+        try {
+            BluetoothGatt g = gatts.get(id);
+            BluetoothGattCharacteristic c = findChar(id, svc, chr);
+            if (g == null || c == null) {
+                reply(rid, false, "Karakteristik yok");
+                return;
+            }
+            opRid.put(id, rid);
+            if (!g.readCharacteristic(c)) {
+                opRid.remove(id);
+                reply(rid, false, "Okuma baslatilamadi");
+            }
+        } catch (Exception e) {
+            reply(rid, false, String.valueOf(e));
+        }
+    }
+
+    @JavascriptInterface
+    public void write(String rid, String id, String svc, String chr, String b64, boolean withResponse) {
+        try {
+            BluetoothGatt g = gatts.get(id);
+            BluetoothGattCharacteristic c = findChar(id, svc, chr);
+            if (g == null || c == null) {
+                reply(rid, false, "Karakteristik yok");
+                return;
+            }
+            c.setWriteType(withResponse ? BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT : BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+            c.setValue(Base64.decode(b64, Base64.DEFAULT));
+            opRid.put(id, rid);
+            if (!g.writeCharacteristic(c)) {
+                opRid.remove(id);
+                reply(rid, false, "Yazma baslatilamadi");
+            }
+        } catch (Exception e) {
+            reply(rid, false, String.valueOf(e));
+        }
+    }
+
+    @JavascriptInterface
+    public void notifyChar(String rid, String id, String svc, String chr, boolean on) {
+        try {
+            BluetoothGatt g = gatts.get(id);
+            BluetoothGattCharacteristic c = findChar(id, svc, chr);
+            if (g == null || c == null) {
+                reply(rid, false, "Karakteristik yok");
+                return;
+            }
+            g.setCharacteristicNotification(c, on);
+            BluetoothGattDescriptor d = c.getDescriptor(CCC);
+            if (d == null) {
+                reply(rid, true, "ok");
+                return;
+            }
+            int p = c.getProperties();
+            boolean ind = (p & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 && (p & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0;
+            if (on) d.setValue(ind ? BluetoothGattDescriptor.ENABLE_INDICATION_VALUE : BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            else d.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+            opRid.put(id, rid);
+            if (!g.writeDescriptor(d)) {
+                opRid.remove(id);
+                reply(rid, false, "Bildirim acilamadi");
+            }
+        } catch (Exception e) {
+            reply(rid, false, String.valueOf(e));
+        }
+    }
+}
+`;
+const usbJava = pkg => `package ${pkg};
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.usb.UsbConstants;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbEndpoint;
+import android.hardware.usb.UsbInterface;
+import android.hardware.usb.UsbManager;
+import android.os.Build;
+import android.util.Base64;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import java.util.ArrayList;
+import java.util.HashMap;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class UsbBridge {
+    private final Activity act;
+    private final WebView web;
+    private final UsbManager um;
+    private final String action;
+    private final HashMap<String, UsbDeviceConnection> conns = new HashMap<String, UsbDeviceConnection>();
+    private final HashMap<String, String> permRid = new HashMap<String, String>();
+    private final BroadcastReceiver receiver;
+
+    public UsbBridge(Activity a, WebView w) {
+        act = a;
+        web = w;
+        um = (UsbManager) a.getSystemService(Context.USB_SERVICE);
+        action = a.getPackageName() + ".USB_PERMISSION";
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent i) {
+                UsbDevice d = i.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (d == null) return;
+                String rid = permRid.remove(d.getDeviceName());
+                if (rid == null) return;
+                if (i.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) reply(rid, true, describe(d));
+                else reply(rid, false, "USB izni verilmedi");
+            }
+        };
+        IntentFilter f = new IntentFilter(action);
+        if (Build.VERSION.SDK_INT >= 33) a.registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED);
+        else a.registerReceiver(receiver, f);
+    }
+
+    public void shutdown() {
+        try { act.unregisterReceiver(receiver); } catch (Exception e) { }
+        for (UsbDeviceConnection c : conns.values()) {
+            try { c.close(); } catch (Exception e) { }
+        }
+        conns.clear();
+    }
+
+    private void js(final String code) {
+        act.runOnUiThread(new Runnable() {
+            public void run() { web.evaluateJavascript(code, null); }
+        });
+    }
+
+    private void reply(String rid, boolean ok, String payload) {
+        js("window.__usbReply(" + JSONObject.quote(rid) + "," + (ok ? "true" : "false") + "," + JSONObject.quote(payload == null ? "" : payload) + ")");
+    }
+
+    private String describe(UsbDevice d) {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("id", d.getDeviceName());
+            o.put("vendorId", d.getVendorId());
+            o.put("productId", d.getProductId());
+            o.put("deviceClass", d.getDeviceClass());
+            try { o.put("productName", d.getProductName()); } catch (Exception ex) { }
+            try { o.put("manufacturerName", d.getManufacturerName()); } catch (Exception ex) { }
+            try { o.put("serialNumber", d.getSerialNumber()); } catch (Exception ex) { }
+            JSONArray ifs = new JSONArray();
+            for (int i = 0; i < d.getInterfaceCount(); i++) {
+                UsbInterface u = d.getInterface(i);
+                JSONArray eps = new JSONArray();
+                for (int k = 0; k < u.getEndpointCount(); k++) {
+                    UsbEndpoint ep = u.getEndpoint(k);
+                    JSONObject eo = new JSONObject();
+                    eo.put("endpointNumber", ep.getEndpointNumber());
+                    eo.put("direction", ep.getDirection() == UsbConstants.USB_DIR_IN ? "in" : "out");
+                    int t = ep.getType();
+                    String tn = "control";
+                    if (t == UsbConstants.USB_ENDPOINT_XFER_BULK) tn = "bulk";
+                    else if (t == UsbConstants.USB_ENDPOINT_XFER_INT) tn = "interrupt";
+                    else if (t == UsbConstants.USB_ENDPOINT_XFER_ISOC) tn = "isochronous";
+                    eo.put("type", tn);
+                    eo.put("packetSize", ep.getMaxPacketSize());
+                    eps.put(eo);
+                }
+                JSONObject alt = new JSONObject();
+                alt.put("alternateSetting", u.getAlternateSetting());
+                alt.put("interfaceClass", u.getInterfaceClass());
+                alt.put("endpoints", eps);
+                JSONArray alts = new JSONArray();
+                alts.put(alt);
+                JSONObject io = new JSONObject();
+                io.put("interfaceNumber", u.getId());
+                io.put("alternates", alts);
+                ifs.put(io);
+            }
+            JSONObject cfg = new JSONObject();
+            cfg.put("configurationValue", 1);
+            cfg.put("interfaces", ifs);
+            JSONArray cfgs = new JSONArray();
+            cfgs.put(cfg);
+            o.put("configurations", cfgs);
+            return o.toString();
+        } catch (Exception ex) {
+            return "{}";
+        }
+    }
+
+    private UsbDevice find(String id) {
+        for (UsbDevice d : um.getDeviceList().values()) {
+            if (d.getDeviceName().equals(id)) return d;
+        }
+        return null;
+    }
+
+    private UsbEndpoint endpoint(UsbDevice d, int number, boolean dirIn) {
+        for (int i = 0; i < d.getInterfaceCount(); i++) {
+            UsbInterface u = d.getInterface(i);
+            for (int k = 0; k < u.getEndpointCount(); k++) {
+                UsbEndpoint ep = u.getEndpoint(k);
+                boolean isIn = ep.getDirection() == UsbConstants.USB_DIR_IN;
+                if (ep.getEndpointNumber() == number && isIn == dirIn) return ep;
+            }
+        }
+        return null;
+    }
+
+    private void grant(String rid, UsbDevice d) {
+        if (um.hasPermission(d)) {
+            reply(rid, true, describe(d));
+            return;
+        }
+        permRid.put(d.getDeviceName(), rid);
+        Intent in = new Intent(action);
+        in.setPackage(act.getPackageName());
+        PendingIntent pi = PendingIntent.getBroadcast(act, 0, in, Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+        um.requestPermission(d, pi);
+    }
+
+    @JavascriptInterface
+    public void request(final String rid, final String filtersJson) {
+        act.runOnUiThread(new Runnable() {
+            public void run() {
+                try {
+                    JSONArray fl = new JSONArray(filtersJson);
+                    final ArrayList<UsbDevice> list = new ArrayList<UsbDevice>();
+                    for (UsbDevice d : um.getDeviceList().values()) {
+                        boolean ok = fl.length() == 0;
+                        for (int i = 0; i < fl.length() && !ok; i++) {
+                            JSONObject f = fl.getJSONObject(i);
+                            ok = (!f.has("vendorId") || f.getInt("vendorId") == d.getVendorId())
+                                    && (!f.has("productId") || f.getInt("productId") == d.getProductId());
+                        }
+                        if (ok) list.add(d);
+                    }
+                    if (list.isEmpty()) {
+                        reply(rid, false, "USB cihaz bulunamadi");
+                        return;
+                    }
+                    if (list.size() == 1) {
+                        grant(rid, list.get(0));
+                        return;
+                    }
+                    String[] labels = new String[list.size()];
+                    for (int i = 0; i < labels.length; i++) {
+                        UsbDevice d2 = list.get(i);
+                        labels[i] = String.format("%04x:%04x  %s", d2.getVendorId(), d2.getProductId(), d2.getDeviceName());
+                    }
+                    new AlertDialog.Builder(act).setTitle("USB cihazi sec")
+                        .setItems(labels, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dlg, int which) { grant(rid, list.get(which)); }
+                        })
+                        .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                            public void onCancel(DialogInterface dlg) { reply(rid, false, "Iptal edildi"); }
+                        })
+                        .show();
+                } catch (Exception ex) {
+                    reply(rid, false, String.valueOf(ex));
+                }
+            }
+        });
+    }
+
+    @JavascriptInterface
+    public String devices() {
+        JSONArray a = new JSONArray();
+        try {
+            for (UsbDevice d : um.getDeviceList().values()) {
+                if (um.hasPermission(d)) a.put(new JSONObject(describe(d)));
+            }
+        } catch (Exception ex) { }
+        return a.toString();
+    }
+
+    @JavascriptInterface
+    public void open(String rid, String id) {
+        try {
+            UsbDevice d = find(id);
+            if (d == null) {
+                reply(rid, false, "Cihaz yok");
+                return;
+            }
+            UsbDeviceConnection c = um.openDevice(d);
+            if (c == null) {
+                reply(rid, false, "Cihaz acilamadi");
+                return;
+            }
+            conns.put(id, c);
+            reply(rid, true, "ok");
+        } catch (Exception ex) {
+            reply(rid, false, String.valueOf(ex));
+        }
+    }
+
+    @JavascriptInterface
+    public void close(String id) {
+        UsbDeviceConnection c = conns.remove(id);
+        if (c != null) {
+            try { c.close(); } catch (Exception ex) { }
+        }
+    }
+
+    @JavascriptInterface
+    public void claim(String rid, String id, int n) {
+        UsbDevice d = find(id);
+        UsbDeviceConnection c = conns.get(id);
+        if (d == null || c == null) {
+            reply(rid, false, "Cihaz acik degil");
+            return;
+        }
+        for (int i = 0; i < d.getInterfaceCount(); i++) {
+            UsbInterface u = d.getInterface(i);
+            if (u.getId() == n) {
+                boolean ok = c.claimInterface(u, true);
+                reply(rid, ok, ok ? "ok" : "Arayuz alinamadi");
+                return;
+            }
+        }
+        reply(rid, false, "Arayuz yok");
+    }
+
+    @JavascriptInterface
+    public void release(String rid, String id, int n) {
+        UsbDevice d = find(id);
+        UsbDeviceConnection c = conns.get(id);
+        if (d != null && c != null) {
+            for (int i = 0; i < d.getInterfaceCount(); i++) {
+                UsbInterface u = d.getInterface(i);
+                if (u.getId() == n) c.releaseInterface(u);
+            }
+        }
+        reply(rid, true, "ok");
+    }
+
+    @JavascriptInterface
+    public void transferOut(final String rid, final String id, final int ep, final String b64) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    UsbDevice d = find(id);
+                    UsbDeviceConnection c = conns.get(id);
+                    UsbEndpoint e = d == null ? null : endpoint(d, ep, false);
+                    if (c == null || e == null) {
+                        reply(rid, false, "Uc nokta yok");
+                        return;
+                    }
+                    byte[] data = Base64.decode(b64, Base64.DEFAULT);
+                    int r = c.bulkTransfer(e, data, data.length, 5000);
+                    if (r < 0) {
+                        reply(rid, false, "Gonderim basarisiz");
+                        return;
+                    }
+                    JSONObject o = new JSONObject();
+                    o.put("status", "ok");
+                    o.put("bytesWritten", r);
+                    reply(rid, true, o.toString());
+                } catch (Exception ex) {
+                    reply(rid, false, String.valueOf(ex));
+                }
+            }
+        }).start();
+    }
+
+    @JavascriptInterface
+    public void transferIn(final String rid, final String id, final int ep, final int len) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    UsbDevice d = find(id);
+                    UsbDeviceConnection c = conns.get(id);
+                    UsbEndpoint e = d == null ? null : endpoint(d, ep, true);
+                    if (c == null || e == null) {
+                        reply(rid, false, "Uc nokta yok");
+                        return;
+                    }
+                    byte[] buf = new byte[len];
+                    int r = c.bulkTransfer(e, buf, len, 5000);
+                    if (r < 0) {
+                        reply(rid, false, "Okuma basarisiz");
+                        return;
+                    }
+                    byte[] out = new byte[r];
+                    System.arraycopy(buf, 0, out, 0, r);
+                    JSONObject o = new JSONObject();
+                    o.put("status", "ok");
+                    o.put("data", Base64.encodeToString(out, Base64.NO_WRAP));
+                    reply(rid, true, o.toString());
+                } catch (Exception ex) {
+                    reply(rid, false, String.valueOf(ex));
+                }
+            }
+        }).start();
+    }
+
+    private int reqType(JSONObject s, boolean in) {
+        String t = s.optString("requestType", "standard");
+        String r = s.optString("recipient", "device");
+        int type = t.equals("class") ? 1 : (t.equals("vendor") ? 2 : 0);
+        int rec = r.equals("interface") ? 1 : (r.equals("endpoint") ? 2 : (r.equals("other") ? 3 : 0));
+        return (in ? 128 : 0) | (type << 5) | rec;
+    }
+
+    @JavascriptInterface
+    public void controlIn(final String rid, final String id, final String setup, final int len) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    UsbDeviceConnection c = conns.get(id);
+                    if (c == null) {
+                        reply(rid, false, "Cihaz acik degil");
+                        return;
+                    }
+                    JSONObject s = new JSONObject(setup);
+                    byte[] buf = new byte[len];
+                    int r = c.controlTransfer(reqType(s, true), s.optInt("request"), s.optInt("value"), s.optInt("index"), buf, len, 5000);
+                    if (r < 0) {
+                        reply(rid, false, "Kontrol aktarimi basarisiz");
+                        return;
+                    }
+                    byte[] out = new byte[r];
+                    System.arraycopy(buf, 0, out, 0, r);
+                    JSONObject o = new JSONObject();
+                    o.put("status", "ok");
+                    o.put("data", Base64.encodeToString(out, Base64.NO_WRAP));
+                    reply(rid, true, o.toString());
+                } catch (Exception ex) {
+                    reply(rid, false, String.valueOf(ex));
+                }
+            }
+        }).start();
+    }
+
+    @JavascriptInterface
+    public void controlOut(final String rid, final String id, final String setup, final String b64) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    UsbDeviceConnection c = conns.get(id);
+                    if (c == null) {
+                        reply(rid, false, "Cihaz acik degil");
+                        return;
+                    }
+                    JSONObject s = new JSONObject(setup);
+                    byte[] data = (b64 == null || b64.length() == 0) ? null : Base64.decode(b64, Base64.DEFAULT);
+                    int r = c.controlTransfer(reqType(s, false), s.optInt("request"), s.optInt("value"), s.optInt("index"), data, data == null ? 0 : data.length, 5000);
+                    if (r < 0) {
+                        reply(rid, false, "Kontrol aktarimi basarisiz");
+                        return;
+                    }
+                    JSONObject o = new JSONObject();
+                    o.put("status", "ok");
+                    o.put("bytesWritten", r);
+                    reply(rid, true, o.toString());
+                } catch (Exception ex) {
+                    reply(rid, false, String.valueOf(ex));
+                }
+            }
+        }).start();
+    }
+}
+`;
+const providerJava = pkg => `package ${pkg};
+
+import android.content.ContentProvider;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.net.Uri;
+import android.os.ParcelFileDescriptor;
+import android.provider.OpenableColumns;
+import android.webkit.MimeTypeMap;
+import java.io.File;
+import java.io.FileNotFoundException;
+
+public class ShareProvider extends ContentProvider {
+    private File fileFor(Uri uri) {
+        String seg = uri.getLastPathSegment();
+        if (seg == null) seg = "file";
+        File dir = new File(getContext().getCacheDir(), "share");
+        return new File(dir, new File(seg).getName());
+    }
+
+    @Override
+    public boolean onCreate() { return true; }
+
+    @Override
+    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        File f = fileFor(uri);
+        String[] cols = projection != null ? projection : new String[] { OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE };
+        MatrixCursor c = new MatrixCursor(cols);
+        Object[] row = new Object[cols.length];
+        for (int i = 0; i < cols.length; i++) {
+            if (OpenableColumns.DISPLAY_NAME.equals(cols[i])) row[i] = f.getName();
+            else if (OpenableColumns.SIZE.equals(cols[i])) row[i] = Long.valueOf(f.length());
+        }
+        c.addRow(row);
+        return c;
+    }
+
+    @Override
+    public String getType(Uri uri) {
+        String n = fileFor(uri).getName();
+        int d = n.lastIndexOf('.');
+        if (d >= 0) {
+            String m = MimeTypeMap.getSingleton().getMimeTypeFromExtension(n.substring(d + 1).toLowerCase());
+            if (m != null) return m;
+        }
+        return "application/octet-stream";
+    }
+
+    @Override
+    public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+        return ParcelFileDescriptor.open(fileFor(uri), ParcelFileDescriptor.MODE_READ_ONLY);
+    }
+
+    @Override
+    public Uri insert(Uri uri, ContentValues values) { return null; }
+
+    @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) { return 0; }
+
+    @Override
+    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) { return 0; }
+}
+`;
+const TYPE_KEYS = ['pdf', 'image', 'text', 'media', 'all'];
+const TYPE_MIMES = {pdf: ['application/pdf'], image: ['image/*'], text: ['text/*', 'application/json'], media: ['audio/*', 'video/*'], all: ['*/*']};
+function injectShim(html){
+  const tag = '<script src="file:///android_asset/_apkshim.js"><' + '/script>';
+  if (html.indexOf('_apkshim.js') >= 0) return html;
+  if (/<head[^>]*>/i.test(html)) return html.replace(/<head[^>]*>/i, m => m + tag);
+  if (/<html[^>]*>/i.test(html)) return html.replace(/<html[^>]*>/i, m => m + tag);
+  if (/^\s*<!doctype[^>]*>/i.test(html)) return html.replace(/^(\s*<!doctype[^>]*>)/i, (m, d) => d + tag);
+  return tag + html;
+}
+function withShim(assets){
+  return assets.map(a => {
+    if (!/\.html?$/i.test(a.path)) return a;
+    try {
+      const txt = typeof a.content === 'string' ? a.content : new TextDecoder('utf-8', {fatal: true}).decode(a.content);
+      return {path: a.path, content: injectShim(txt)};
+    } catch(e){ return a; }
+  });
+}
+function projectFiles(o){
+  const out = [];
+  const add = (path, content) => out.push({path, content});
+  add('settings.gradle', `pluginManagement {
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+dependencyResolutionManagement {
+    repositories { google(); mavenCentral() }
+}
+rootProject.name = "app"
+include ':app'
+`);
+  add('build.gradle', `plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}
+`);
+  add('gradle.properties', 'org.gradle.jvmargs=-Xmx2g\nandroid.useAndroidX=false\n');
+  add('app/build.gradle', `plugins {
+    id 'com.android.application'
+}
+android {
+    namespace '${o.pkg}'
+    compileSdk 34
+    defaultConfig {
+        applicationId '${o.pkg}'
+        minSdk 21
+        targetSdk 34
+        versionCode ${o.vc}
+        versionName '${o.ver.replace(/'/g,'')}'
+    }
+}
+`);
+  const mimes = new Set();
+  (o.types || []).forEach(k => (TYPE_MIMES[k] || []).forEach(m => mimes.add(m)));
+  const mlist = mimes.has('*/*') ? ['*/*'] : [...mimes];
+  const dataTags = mlist.map(m => '                <data android:mimeType="' + m + '" />').join('\n');
+  const filters = mlist.length ? `            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+${dataTags}
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+${dataTags}
+            </intent-filter>
+` : '';
+  const P = o.perms || [];
+  let permXml = '    <uses-permission android:name="android.permission.VIBRATE" />\n';
+  if (P.includes('cam')) permXml += '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />\n';
+  if (P.includes('mic')) permXml += '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.microphone" android:required="false" />\n';
+  if (P.includes('loc')) permXml += '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n';
+  if (P.includes('not')) permXml += '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n';
+  const hasBle = P.includes('ble'), hasUsb = P.includes('usb');
+  if (hasBle) permXml += '    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n' + (P.includes('loc') ? '' : '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n') + '    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />\n';
+  if (hasUsb) permXml += '    <uses-feature android:name="android.hardware.usb.host" android:required="false" />\n';
+  const J = (c, t) => c ? t + '\n' : '';
+  const jFields = J(hasBle, '    private BleBridge ble;') + J(hasUsb, '    private UsbBridge usb;');
+  const jInit = J(hasBle, '        if (LOCAL) { ble = new BleBridge(this, web); web.addJavascriptInterface(ble, "AndroidBle"); }') + J(hasUsb, '        if (LOCAL) { usb = new UsbBridge(this, web); web.addJavascriptInterface(usb, "AndroidUsb"); }');
+  const jPerm = J(hasBle, '        if (ble != null) ble.onPermissionResult(requestCode, grantResults);');
+  const jDestroy = J(hasBle, '        if (ble != null) ble.shutdown();') + J(hasUsb, '        if (usb != null) usb.shutdown();');
+  const icon = o.iconBuf ? '@drawable/ic_launcher' : '@android:drawable/sym_def_app_icon';
+  const theme = o.full ? '@android:style/Theme.Material.NoActionBar.Fullscreen' : '@android:style/Theme.Material.Light.NoActionBar';
+  add('app/src/main/AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+${permXml}    <queries>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+    <application
+        android:label="${esc(o.name)}"
+        android:icon="${icon}"
+        android:usesCleartextTraffic="true"
+        android:theme="${theme}">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="${o.ori}"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+${filters}        </activity>
+        <provider
+            android:name=".ShareProvider"
+            android:authorities="${o.pkg}.shareprovider"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+    </application>
+</manifest>
+`);
+  add('app/src/main/java/' + o.pkg.replace(/\./g,'/') + '/MainActivity.java', `package ${o.pkg};
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import java.util.HashMap;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.ClipboardManager;
+import android.content.pm.PackageManager;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.webkit.CookieManager;
+import android.webkit.GeolocationPermissions;
+import android.webkit.PermissionRequest;
+import android.widget.FrameLayout;
+import android.content.ClipData;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
+import android.util.Base64;
+import android.webkit.DownloadListener;
+import android.webkit.JavascriptInterface;
+import android.webkit.URLUtil;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Toast;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class MainActivity extends Activity {
+    private static final boolean LOCAL = ${o.startUrl === LOCAL};
+    private static final int FILE_REQ = 1001;
+    private static final int BRIDGE_REQ = 1002;
+    private WebView web;
+    private ValueCallback<Uri[]> filePathCallback;
+    private boolean pageReady = false;
+    private ArrayList<Uri> pendingUris = null;
+    private String pendingText = null;
+    private String shimJs = "";
+${jFields}    private static final int PERM_REQ = 1003;
+    private static final int NOTIF_REQ = 1005;
+    private final HashMap<String, FileOutputStream> saveOut = new HashMap<String, FileOutputStream>();
+    private final HashMap<String, String[]> saveMeta = new HashMap<String, String[]>();
+    private PermissionRequest pendingPerm = null;
+    private GeolocationPermissions.Callback pendingGeoCb = null;
+    private String pendingGeoOrigin = null;
+    private View customView = null;
+    private WebChromeClient.CustomViewCallback customCb = null;
+
+    private Intent buildPicker(String[] accept, boolean multiple) {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        ArrayList<String> mimes = new ArrayList<String>();
+        boolean any = false;
+        if (accept != null) {
+            for (String a : accept) {
+                if (a == null) continue;
+                a = a.trim();
+                if (a.length() == 0) { any = true; continue; }
+                if (a.indexOf('/') > 0) mimes.add(a);
+            }
+        }
+        if (!any && mimes.size() > 0) {
+            if (mimes.size() == 1) i.setType(mimes.get(0));
+            else i.putExtra(Intent.EXTRA_MIME_TYPES, mimes.toArray(new String[0]));
+        }
+        if (multiple) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        return Intent.createChooser(i, null);
+    }
+
+    private void toast(final String m) {
+        runOnUiThread(new Runnable() {
+            public void run() { Toast.makeText(MainActivity.this, m, Toast.LENGTH_LONG).show(); }
+        });
+    }
+
+    private void js(final String code) {
+        runOnUiThread(new Runnable() {
+            public void run() { web.evaluateJavascript(code, null); }
+        });
+    }
+
+    public class Bridge {
+        @JavascriptInterface
+        public void pick(final String accept, final boolean multiple) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    try {
+                        String[] acc = (accept == null || accept.length() == 0) ? new String[0] : accept.split(",");
+                        startActivityForResult(buildPicker(acc, multiple), BRIDGE_REQ);
+                    } catch (Exception e) {
+                        toast("Dosya secici acilamadi: " + e);
+                        js("window.__nativeDone()");
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void share(String title, String text, String url, String filesJson) {
+            doShare(title, text, url, filesJson);
+        }
+
+        @JavascriptInterface
+        public void print() {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    try {
+                        PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                        PrintDocumentAdapter adapter = web.createPrintDocumentAdapter("Belge");
+                        pm.print("Belge", adapter, new PrintAttributes.Builder().build());
+                    } catch (Exception e) {
+                        toast("Yazdirma acilamadi: " + e);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void copy(final String text) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    try {
+                        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        cm.setPrimaryClip(ClipData.newPlainText("text", text));
+                    } catch (Exception e) {
+                        toast("Kopyalanamadi: " + e);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String paste() {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData cd = cm.getPrimaryClip();
+                if (cd != null && cd.getItemCount() > 0) {
+                    CharSequence t = cd.getItemAt(0).coerceToText(MainActivity.this);
+                    return t == null ? "" : t.toString();
+                }
+            } catch (Exception e) { }
+            return "";
+        }
+
+        @JavascriptInterface
+        public void keepAwake(final boolean on) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                    else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String notifPerm() {
+            if (Build.VERSION.SDK_INT >= 33) {
+                return checkSelfPermission("android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED ? "granted" : "default";
+            }
+            return notificationsEnabled() ? "granted" : "denied";
+        }
+
+        @JavascriptInterface
+        public void notifRequest() {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED) {
+                            js("window.__notifResolve && window.__notifResolve('granted')");
+                        } else {
+                            requestPermissions(new String[] { "android.permission.POST_NOTIFICATIONS" }, NOTIF_REQ);
+                        }
+                    } else {
+                        js("window.__notifResolve && window.__notifResolve('" + (notificationsEnabled() ? "granted" : "denied") + "')");
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void showNote(String title, String body, String tag) {
+            showNotification(title, body, tag);
+        }
+
+        @JavascriptInterface
+        public void beginSave(String id, String name, String mime) {
+            try {
+                File dir = new File(getCacheDir(), "dl");
+                dir.mkdirs();
+                saveOut.put(id, new FileOutputStream(new File(dir, id + ".tmp")));
+                saveMeta.put(id, new String[] { name, mime });
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
+        }
+
+        @JavascriptInterface
+        public void chunkSave(String id, String b64) {
+            try {
+                FileOutputStream fo = saveOut.get(id);
+                if (fo != null) fo.write(Base64.decode(b64, Base64.DEFAULT));
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
+        }
+
+        @JavascriptInterface
+        public void endSave(String id) {
+            try {
+                FileOutputStream fo = saveOut.remove(id);
+                String[] meta = saveMeta.remove(id);
+                if (fo == null || meta == null) return;
+                fo.close();
+                finishDownload(new File(new File(getCacheDir(), "dl"), id + ".tmp"), meta[0], meta[1]);
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
+        }
+
+        @JavascriptInterface
+        public void saveBlob(String name, String mime, String b64) {
+            try {
+                saveDownload(name, mime, Base64.decode(b64, Base64.DEFAULT));
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
+        }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        web = new WebView(this);
+        setContentView(web);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setAllowFileAccess(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setGeolocationEnabled(true);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        if (LOCAL) {
+            s.setAllowFileAccessFromFileURLs(true);
+            s.setAllowUniversalAccessFromFileURLs(true);
+        }
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
+        if (LOCAL) shimJs = readAsset("_apkshim.js");
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url.startsWith("mailto:") || url.startsWith("tel:") || url.startsWith("intent:")
+                        || (LOCAL && (url.startsWith("http://") || url.startsWith("https://")))) {
+                    openExternal(url);
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (LOCAL && shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
+                pageReady = true;
+                flushPending();
+            }
+        });
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams params) {
+                if (filePathCallback != null) filePathCallback.onReceiveValue(null);
+                filePathCallback = cb;
+                try {
+                    boolean multi = params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+                    startActivityForResult(buildPicker(params.getAcceptTypes(), multi), FILE_REQ);
+                } catch (Exception e) {
+                    filePathCallback = null;
+                    toast("Dosya secici acilamadi: " + e);
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public void onPermissionRequest(final PermissionRequest req) {
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        ArrayList<String> need = new ArrayList<String>();
+                        for (String r : req.getResources()) {
+                            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) need.add(Manifest.permission.CAMERA);
+                            else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r)) need.add(Manifest.permission.RECORD_AUDIO);
+                        }
+                        ArrayList<String> missing = missingPerms(need);
+                        if (missing.isEmpty()) {
+                            req.grant(req.getResources());
+                            return;
+                        }
+                        if (pendingPerm != null) pendingPerm.deny();
+                        pendingPerm = req;
+                        requestPermissions(missing.toArray(new String[0]), PERM_REQ);
+                    }
+                });
+            }
+
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) {
+                ArrayList<String> need = new ArrayList<String>();
+                need.add(Manifest.permission.ACCESS_FINE_LOCATION);
+                ArrayList<String> missing = missingPerms(need);
+                if (missing.isEmpty()) {
+                    cb.invoke(origin, true, false);
+                    return;
+                }
+                pendingGeoCb = cb;
+                pendingGeoOrigin = origin;
+                requestPermissions(missing.toArray(new String[0]), PERM_REQ + 1);
+            }
+
+            @Override
+            public void onShowCustomView(View view, WebChromeClient.CustomViewCallback cb) {
+                if (customView != null) {
+                    cb.onCustomViewHidden();
+                    return;
+                }
+                customView = view;
+                customCb = cb;
+                ((ViewGroup) getWindow().getDecorView()).addView(view,
+                        new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+
+            @Override
+            public void onHideCustomView() {
+                hideCustom();
+            }
+        });
+        web.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String ua, String cd, String mime, long len) {
+                if (LOCAL && (url.startsWith("blob:") || url.startsWith("data:"))) fetchAndSave(url, cd, mime);
+                else openExternal(url);
+            }
+        });
+        if (LOCAL) web.addJavascriptInterface(new Bridge(), "AndroidFiles");
+${jInit}        web.loadUrl("${jstr(o.startUrl)}");
+        handleIntent(getIntent());
+    }
+
+    private String readAsset(String name) {
+        try {
+            InputStream in = getAssets().open(name);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            in.close();
+            return out.toString("UTF-8");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private void openExternal(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Exception e) { }
+    }
+
+    private void fetchAndSave(String url, String cd, String mime) {
+        String name = URLUtil.guessFileName(url.startsWith("data:") ? "download" : url, cd, mime);
+        js("(function(){fetch(" + JSONObject.quote(url) + ").then(function(r){return r.blob();}).then(function(b){"
+                + "if(window.__apkSaveBlob)window.__apkSaveBlob(b," + JSONObject.quote(name) + ");});})()");
+    }
+
+    private void saveDownload(String name, String mime, byte[] data) {
+        try {
+            File dir = new File(getCacheDir(), "dl");
+            dir.mkdirs();
+            File f = new File(dir, "t" + System.currentTimeMillis() + ".tmp");
+            FileOutputStream fo = new FileOutputStream(f);
+            fo.write(data);
+            fo.close();
+            finishDownload(f, name, mime);
+        } catch (Exception e) {
+            toast("Kaydedilemedi: " + e);
+        }
+    }
+
+    private void copyFile(File src, OutputStream os) throws Exception {
+        InputStream in = new java.io.FileInputStream(src);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+        in.close();
+        os.close();
+    }
+
+    private void finishDownload(File src, String name, String mime) {
+        try {
+            if (name == null || name.length() == 0) name = "dosya";
+            if (mime == null || mime.length() == 0) mime = "application/octet-stream";
+            Uri opened = null;
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                Uri u = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                copyFile(src, getContentResolver().openOutputStream(u));
+                opened = u;
+            } else {
+                File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                dir.mkdirs();
+                copyFile(src, new FileOutputStream(new File(dir, name)));
+            }
+            src.delete();
+            showSaved(name, mime, opened);
+        } catch (Exception e) {
+            toast("Kaydedilemedi: " + e);
+        }
+    }
+
+    private void showSaved(final String name, final String mime, final Uri uri) {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                AlertDialog.Builder b = new AlertDialog.Builder(MainActivity.this);
+                b.setTitle("Indirildi");
+                b.setMessage(name + " dosyasi Indirilenler klasorune kaydedildi.");
+                b.setNegativeButton("Tamam", null);
+                if (uri != null) {
+                    b.setPositiveButton("Ac", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface d, int w) {
+                            try {
+                                Intent it = new Intent(Intent.ACTION_VIEW);
+                                it.setDataAndType(uri, mime);
+                                it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                startActivity(it);
+                            } catch (Exception e) {
+                                toast("Acilamadi: " + e);
+                            }
+                        }
+                    });
+                }
+                b.show();
+            }
+        });
+    }
+
+    private void doShare(String title, String text, String url, String filesJson) {
+        try {
+            JSONArray arr = new JSONArray(filesJson);
+            final ArrayList<Uri> uris = new ArrayList<Uri>();
+            String mime = null;
+            boolean mixed = false;
+            File dir = new File(getCacheDir(), "share");
+            dir.mkdirs();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.getJSONObject(i);
+                String n = new File(o.getString("n")).getName();
+                if (n.length() == 0) n = "file" + i;
+                FileOutputStream fo = new FileOutputStream(new File(dir, n));
+                fo.write(Base64.decode(o.getString("b"), Base64.DEFAULT));
+                fo.close();
+                uris.add(Uri.parse("content://" + getPackageName() + ".shareprovider/" + Uri.encode(n)));
+                String m = o.optString("m", "application/octet-stream");
+                if (mime == null) mime = m; else if (!mime.equals(m)) mixed = true;
+            }
+            final Intent it = new Intent(uris.size() > 1 ? Intent.ACTION_SEND_MULTIPLE : Intent.ACTION_SEND);
+            String body = text == null ? "" : text;
+            if (url != null && url.length() > 0) body = body.length() > 0 ? body + String.valueOf((char) 10) + url : url;
+            if (uris.isEmpty()) {
+                it.setType("text/plain");
+            } else {
+                it.setType((mixed || mime == null) ? "*/*" : mime);
+                if (uris.size() > 1) it.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+                else it.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+                ClipData cd = ClipData.newRawUri(null, uris.get(0));
+                for (int k = 1; k < uris.size(); k++) cd.addItem(new ClipData.Item(uris.get(k)));
+                it.setClipData(cd);
+                it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
+            if (body.length() > 0) it.putExtra(Intent.EXTRA_TEXT, body);
+            if (title != null && title.length() > 0) it.putExtra(Intent.EXTRA_SUBJECT, title);
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    try {
+                        startActivity(Intent.createChooser(it, null));
+                    } catch (Exception e) {
+                        toast("Paylasilamadi: " + e);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            toast("Paylasilamadi: " + e);
+        }
+    }
+
+    private void handleIntent(Intent it) {
+        if (it == null) return;
+        String act = it.getAction();
+        ArrayList<Uri> uris = new ArrayList<Uri>();
+        String text = null;
+        if (Intent.ACTION_VIEW.equals(act) && it.getData() != null) {
+            uris.add(it.getData());
+        } else if (Intent.ACTION_SEND.equals(act)) {
+            Uri u = it.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (u != null) uris.add(u); else text = it.getStringExtra(Intent.EXTRA_TEXT);
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(act)) {
+            ArrayList<Uri> l = it.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (l != null) uris.addAll(l);
+        } else {
+            return;
+        }
+        it.setAction(null);
+        if (uris.isEmpty() && text == null) return;
+        pendingUris = uris;
+        pendingText = text;
+        if (pageReady) flushPending();
+    }
+
+    private void flushPending() {
+        final ArrayList<Uri> u = pendingUris;
+        final String t = pendingText;
+        pendingUris = null;
+        pendingText = null;
+        if (t != null) js("window.__incomingText && window.__incomingText(" + JSONObject.quote(t) + ")");
+        if (u != null && !u.isEmpty()) {
+            new Thread(new Runnable() {
+                public void run() { sendFiles(u, "__incomingFile", "__incomingDone"); }
+            }).start();
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent it) {
+        super.onNewIntent(it);
+        setIntent(it);
+        handleIntent(it);
+    }
+
+    private void sendFiles(ArrayList<Uri> uris, String fileFn, String doneFn) {
+        for (Uri u : uris) {
+            try {
+                String name = "dosya";
+                Cursor c = getContentResolver().query(u, null, null, null, null);
+                if (c != null) {
+                    try {
+                        if (c.moveToFirst()) {
+                            int ix = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                            if (ix >= 0) name = c.getString(ix);
+                        }
+                    } finally { c.close(); }
+                }
+                String mime = getContentResolver().getType(u);
+                if (mime == null) mime = "";
+                InputStream in = getContentResolver().openInputStream(u);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                in.close();
+                String b64 = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+                js("window." + fileFn + "(" + JSONObject.quote(name) + "," + JSONObject.quote(mime) + ",'" + b64 + "')");
+            } catch (Exception e) {
+                toast("Dosya okunamadi: " + e);
+            }
+        }
+        js("window." + doneFn + "()");
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == FILE_REQ && filePathCallback != null) {
+            filePathCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            filePathCallback = null;
+            return;
+        }
+        if (requestCode == BRIDGE_REQ) {
+            final ArrayList<Uri> uris = new ArrayList<Uri>();
+            if (resultCode == RESULT_OK && data != null) {
+                ClipData cd = data.getClipData();
+                if (cd != null) {
+                    for (int k = 0; k < cd.getItemCount(); k++) uris.add(cd.getItemAt(k).getUri());
+                } else if (data.getData() != null) {
+                    uris.add(data.getData());
+                }
+            }
+            new Thread(new Runnable() {
+                public void run() { sendFiles(uris, "__nativeFile", "__nativeDone"); }
+            }).start();
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private boolean notificationsEnabled() {
+        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        return Build.VERSION.SDK_INT >= 24 ? nm.areNotificationsEnabled() : true;
+    }
+
+    private void showNotification(String title, String body, String tag) {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            Notification.Builder b;
+            if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new NotificationChannel("apk_default", "Bildirimler", NotificationManager.IMPORTANCE_DEFAULT));
+                b = new Notification.Builder(this, "apk_default");
+            } else {
+                b = new Notification.Builder(this);
+            }
+            Intent in = new Intent(this, MainActivity.class);
+            in.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent pi = PendingIntent.getActivity(this, 0, in, Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+            b.setSmallIcon(android.R.drawable.ic_dialog_info);
+            b.setContentTitle(title);
+            b.setContentText(body);
+            b.setAutoCancel(true);
+            b.setContentIntent(pi);
+            int id = (tag != null && tag.length() > 0) ? tag.hashCode() : (int) (System.currentTimeMillis() & 0x7fffffff);
+            nm.notify(id, b.build());
+        } catch (Exception e) {
+            toast("Bildirim gosterilemedi: " + e);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+${jDestroy}        super.onDestroy();
+    }
+
+    private ArrayList<String> missingPerms(ArrayList<String> need) {
+        ArrayList<String> m = new ArrayList<String>();
+        if (Build.VERSION.SDK_INT < 23) return m;
+        for (String p : need) {
+            if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) m.add(p);
+        }
+        return m;
+    }
+
+    private void hideCustom() {
+        if (customView == null) return;
+        ((ViewGroup) getWindow().getDecorView()).removeView(customView);
+        customView = null;
+        if (customCb != null) customCb.onCustomViewHidden();
+        customCb = null;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+${jPerm}        boolean ok = grantResults.length > 0;
+        for (int g : grantResults) {
+            if (g != PackageManager.PERMISSION_GRANTED) ok = false;
+        }
+        if (requestCode == PERM_REQ && pendingPerm != null) {
+            if (ok) pendingPerm.grant(pendingPerm.getResources()); else pendingPerm.deny();
+            pendingPerm = null;
+        } else if (requestCode == PERM_REQ + 1 && pendingGeoCb != null) {
+            pendingGeoCb.invoke(pendingGeoOrigin, ok, false);
+            pendingGeoCb = null;
+        } else if (requestCode == NOTIF_REQ) {
+            js("window.__notifResolve && window.__notifResolve('" + (ok ? "granted" : "denied") + "')");
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (customView != null) {
+            hideCustom();
+            return;
+        }
+        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    }
+}
+`);
+  add('app/src/main/java/' + o.pkg.replace(/\./g,'/') + '/ShareProvider.java', providerJava(o.pkg));
+  if (hasBle) add('app/src/main/java/' + o.pkg.replace(/\./g,'/') + '/BleBridge.java', bleJava(o.pkg));
+  if (hasUsb) add('app/src/main/java/' + o.pkg.replace(/\./g,'/') + '/UsbBridge.java', usbJava(o.pkg));
+  add('app/src/main/assets/_apkshim.js', SHIM_JS + (hasBle ? BLE_SHIM : '') + (hasUsb ? USB_SHIM : ''));
+  for (const a of o.assets) add('app/src/main/assets/' + a.path, a.content);
+  if (o.iconBuf) add('app/src/main/res/drawable/ic_launcher.png', o.iconBuf);
+  add('.github/workflows/build.yml', `name: Build APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+      - run: gradle assembleDebug
+      - name: Release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: gh release create "build-\${{ github.run_number }}" app/build/outputs/apk/debug/app-debug.apk --title "APK \${{ github.run_number }}" --notes "Debug APK"
+`);
+  return out;
+}
+
+// ---- Önizleme ----
+let pvUrls = [];
+function pvMk(data, type){ const u = URL.createObjectURL(new Blob([data], {type})); pvUrls.push(u); return u; }
+async function buildPreview(){
+  if (mode === 'file') {
+    const main = $('main').value;
+    if (!files.length || !main) throw new Error('HTML dosyası seçilmedi.');
+    const reEsc = p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const urls = {};
+    for (const f of files) if (!/\.(css|js|html?)$/i.test(f.path)) { const u = URL.createObjectURL(f.file); pvUrls.push(u); urls[f.path] = u; }
+    const rw = t => {
+      Object.keys(urls).sort((a, b) => b.length - a.length).forEach(p => {
+        t = t.replace(new RegExp('(["\'(=\\s])(?:\\./)?' + reEsc(p) + '(?=["\')\\s>?#])', 'g'), (m, pre) => pre + urls[p]);
+      });
+      return t;
+    };
+    for (const f of files) if (f.path !== main && /\.(css|js)$/i.test(f.path)) urls[f.path] = pvMk(rw(await f.file.text()), /\.css$/i.test(f.path) ? 'text/css' : 'text/javascript');
+    for (const f of files) if (f.path !== main && /\.html?$/i.test(f.path)) urls[f.path] = pvMk(rw(await f.file.text()), 'text/html');
+    const mf = files.find(f => f.path === main);
+    return {srcdoc: rw(await mf.file.text()), note: ''};
+  }
+  if (mode === 'paste') {
+    const t = $('paste').value;
+    if (!t.trim()) throw new Error('HTML kodu yapıştırılmadı.');
+    return {srcdoc: t, note: ''};
+  }
+  if (mode === 'link') {
+    let u = $('url').value.trim();
+    if (!u) throw new Error('Site adresi girilmedi.');
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    try { new URL(u); } catch(e){ throw new Error('Site adresi geçersiz.'); }
+    return {src: u, note: 'Bazı siteler çerçeve içinde açılmayı engeller. Boş görünürse uygulamada yine açılır.'};
+  }
+  const f = $('pdf').files[0];
+  if (!f) throw new Error('PDF seçilmedi.');
+  const assets = await pdfToAssets(f, 8);
+  let html = '';
+  const map = {};
+  for (const a of assets) { if (a.path === 'index.html') html = a.content; else map[a.path] = pvMk(a.content, 'image/jpeg'); }
+  for (const p in map) html = html.split(p).join(map[p]);
+  return {srcdoc: html, note: 'Önizlemede PDF\'in ilk 8 sayfası gösterilir.'};
+}
+function openPreview(p){
+  const name = $('name').value.trim() || 'Uygulama';
+  const land = $('ori').value === 'landscape', full = $('full').checked;
+  const W = land ? 844 : 390, H = land ? 390 : 844, SB = full ? 0 : 24, BZ = 10;
+  const k = Math.min(1, (window.innerWidth - 40) / (W + 2 * BZ), (window.innerHeight * 0.62) / (H + 2 * BZ));
+  const ph = $('phone');
+  ph.style.width = (W + 2 * BZ) + 'px'; ph.style.height = (H + 2 * BZ) + 'px'; ph.style.transform = 'scale(' + k + ')';
+  $('phWrap').style.width = ((W + 2 * BZ) * k) + 'px'; $('phWrap').style.height = ((H + 2 * BZ) * k) + 'px';
+  const sb = $('sb');
+  sb.style.display = full ? 'none' : 'flex';
+  sb.firstElementChild.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  const fr = $('pvFrame');
+  fr.style.height = (H - SB) + 'px';
+  if (p.srcdoc != null) {
+    fr.removeAttribute('src');
+    fr.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-popups');
+    fr.srcdoc = p.srcdoc;
+  } else {
+    fr.removeAttribute('srcdoc');
+    fr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+    fr.src = p.src;
+  }
+  $('pvNote').textContent = p.note || '';
+  const ic = $('icon').files[0] || (level === 'quick' ? autoIconBlob : null), tile = $('pvIcon');
+  tile.textContent = '';
+  if (ic) { const im = document.createElement('img'); im.src = pvMk(ic, 'image/png'); tile.appendChild(im); }
+  else tile.textContent = name.charAt(0).toUpperCase();
+  $('pvName').textContent = name;
+  $('pv').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closePreview(){
+  const fr = $('pvFrame');
+  fr.removeAttribute('srcdoc'); fr.src = 'about:blank';
+  pvUrls.forEach(u => URL.revokeObjectURL(u)); pvUrls = [];
+  $('pv').hidden = true;
+  document.body.style.overflow = '';
+}
+$('pvClose').onclick = closePreview;
+$('pvGo').onclick = () => { closePreview(); $('go').click(); };
+$('prev').onclick = async () => {
+  $('log').innerHTML = ''; $('result').innerHTML = '';
+  $('prev').disabled = true;
+  try { log('Önizleme hazırlanıyor…'); if (level === 'quick' && !editing) await fillAuto(); openPreview(await buildPreview()); $('log').innerHTML = ''; }
+  catch(e){ log('Hata: ' + e.message, 'err'); }
+  $('prev').disabled = false;
+};
+
+// ---- Depolama ----
+const mem = {};
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){ mem[k] = v; } }
+function lsDel(k){ try { localStorage.removeItem(k); } catch(e){ delete mem[k]; } }
+const getToken = () => (lsGet('gh_token') || '').trim();
+const getPub = () => lsGet('gh_pub') !== '0';
+function loadApps(){ try { return JSON.parse(lsGet('apps') || '[]'); } catch(e){ return []; } }
+function saveApps(a){ lsSet('apps', JSON.stringify(a)); }
+
+function idb(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('apkmaker', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('src');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function srcPut(id, val){
+  const db = await idb();
+  return new Promise((res, rej) => { const tx = db.transaction('src', 'readwrite'); tx.objectStore('src').put(val, id); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+}
+async function srcGet(id){
+  const db = await idb();
+  return new Promise((res, rej) => { const q = db.transaction('src').objectStore('src').get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); });
+}
+async function srcDel(id){
+  const db = await idb();
+  return new Promise((res, rej) => { const tx = db.transaction('src', 'readwrite'); tx.objectStore('src').delete(id); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+}
+
+function el(t, c, x){ const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+const fmt = ms => new Date(ms).toLocaleDateString('tr-TR', {day:'2-digit', month:'short', year:'numeric'});
+let editing = null, level = 'adv', autoIconBlob = null;
+
+// ---- Görünümler ----
+function route(){
+  const ed = location.hash === '#new';
+  $('editor').hidden = !ed; $('home').hidden = ed;
+  $('ttl').textContent = ed ? (editing ? 'Düzenle' : (level === 'quick' ? 'Hızlı oluştur' : 'Gelişmiş oluştur')) : "APK'larım";
+  $('topAct').textContent = ed ? 'Geri' : '+ Yeni';
+  $('menuBtn').style.visibility = ed ? 'hidden' : 'visible';
+  $('choice').hidden = true;
+  closeDrawer();
+  if (!ed) { $('homeMsg').textContent = ''; renderHome(); }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+$('topAct').onclick = () => { if (location.hash === '#new') history.back(); else $('choice').hidden = false; };
+$('chBack').onclick = () => { $('choice').hidden = true; };
+$('chQuick').onclick = () => { $('choice').hidden = true; openEditor(null, 'quick'); };
+$('chAdv').onclick = () => { $('choice').hidden = true; openEditor(null, 'adv'); };
+
+// ---- Menü / token ----
+function updateTokenStatus(){
+  const t = getToken();
+  $('tokSt').textContent = t ? 'Kayıtlı: ' + t.slice(0, 4) + '••••' + t.slice(-4) : 'Token kayıtlı değil.';
+  $('tokDel').hidden = !t;
+}
+function openDrawer(){ updateTokenStatus(); $('pubChk').checked = getPub(); $('drawer').hidden = false; }
+function closeDrawer(){ $('drawer').hidden = true; }
+$('menuBtn').onclick = openDrawer;
+$('dClose').onclick = closeDrawer;
+$('dBack').onclick = closeDrawer;
+$('tokSave').onclick = async () => {
+  const v = $('tokIn').value.trim();
+  if (!v) return;
+  $('tokSt').textContent = 'Doğrulanıyor…';
+  token = v;
+  try {
+    const me = await gh('/user');
+    lsSet('gh_token', v); $('tokIn').value = '';
+    updateTokenStatus(); $('tokSt').textContent += '  ✓ ' + me.login;
+    $('noToken').hidden = true;
+  } catch(e){
+    token = getToken();
+    $('tokSt').textContent = 'Token geçersiz: ' + e.message;
+  }
+};
+$('tokDel').onclick = () => { lsDel('gh_token'); token = ''; updateTokenStatus(); $('noToken').hidden = false; };
+$('pubChk').onchange = e => lsSet('gh_pub', e.target.checked ? '1' : '0');
+
+// ---- Ana ekran ----
+function renderHome(){
+  const apps = loadApps().sort((a, b) => b.updated - a.updated);
+  $('noToken').hidden = !!getToken();
+  $('empty').hidden = apps.length > 0;
+  const box = $('appList'); box.innerHTML = '';
+  apps.forEach(a => {
+    const card = el('div', 'app');
+    const h = el('div', 'h');
+    const ic = el('div', 'ic');
+    if (a.icon) { const im = el('img'); im.src = a.icon; ic.appendChild(im); } else ic.textContent = (a.name || 'A').charAt(0).toUpperCase();
+    const info = el('div', 'info');
+    info.append(el('b', null, a.name), el('small', null, a.pkg), el('small', null, 'v' + a.ver + ' · ' + fmt(a.updated)));
+    h.append(ic, info);
+    const act = el('div', 'act');
+    fillActions(act, a);
+    card.append(h, act);
+    box.appendChild(card);
+  });
+}
+function fillActions(act, a){
+  act.innerHTML = '';
+  const dl = el('a', 'btn s', 'İndir'); dl.href = a.apkUrl; dl.rel = 'noopener';
+  const ed = el('button', 'sec s', 'Düzenle'); ed.onclick = () => openEditor(a);
+  const del = el('button', 'sec s danger', 'Sil'); del.onclick = () => askDelete(act, a);
+  act.append(dl, ed, del);
+}
+function askDelete(act, a){
+  act.innerHTML = '';
+  const q = el('span', 'q', 'Silinsin mi?');
+  const y = el('button', 's danger f', 'Evet, sil'); y.onclick = () => doDelete(a);
+  const n = el('button', 'sec s', 'Vazgeç'); n.onclick = () => fillActions(act, a);
+  act.append(q, y, n);
+}
+async function doDelete(a){
+  let note = '"' + a.name + '" silindi.';
+  token = getToken();
+  if (token) {
+    try { await gh('/repos/' + a.owner + '/' + a.repo, {method:'DELETE'}); }
+    catch(e){ if (e.status !== 404) note = '"' + a.name + '" listeden silindi, ama GitHub deposu silinemedi (' + e.message + '). Token\'a delete_repo izni ver ya da depoyu GitHub\'dan elle sil.'; }
+  }
+  saveApps(loadApps().filter(x => x.id !== a.id));
+  try { await srcDel(a.id); } catch(e){}
+  renderHome();
+  $('homeMsg').textContent = note;
+}
+
+// ---- Düzenleyici ----
+function bump(v){ const m = /^(\d+)\.(\d+)$/.exec(v); return m ? m[1] + '.' + (+m[2] + 1) : v; }
+function openEditor(rec, lvl){
+  editing = rec || null;
+  level = rec ? 'adv' : (lvl || 'adv');
+  setFiles([], false);
+  $('paste').value = ''; $('url').value = ''; $('pdf').value = ''; $('icon').value = '';
+  iconCurrent = null; iconSrc = null; setIconPreview(rec && rec.icon ? rec.icon : null);
+  document.querySelector('.tabs button[data-m="file"]').click();
+  $('log').innerHTML = ''; $('result').innerHTML = '';
+  if (rec) {
+    $('name').value = rec.name; pkgEdited = true; $('pkg').value = rec.pkg;
+    setTypes(rec.types || []); setPerms(rec.perms || []); $('ver').value = bump(rec.ver); $('ori').value = rec.ori || 'unspecified'; $('full').checked = !!rec.full;
+    $('banner').textContent = 'Düzenleniyor: ' + rec.name + '. Yeni içerik seçmezsen mevcut içerik kullanılır.';
+    $('banner').hidden = false;
+  } else {
+    $('name').value = 'Uygulamam'; pkgEdited = false; syncPkg(); setTypes([]); setPerms([]);
+    $('ver').value = '1.0'; $('ori').value = 'unspecified'; $('full').checked = false;
+    if (level === 'quick') { $('banner').textContent = 'Hızlı mod: ad, paket adı, ikon ve ayarlar otomatik belirlenir.'; $('banner').hidden = false; }
+    else $('banner').hidden = true;
+  }
+  $('advCard').hidden = level === 'quick';
+  location.hash = '#new';
+  route();
+}
+function hasNewContent(){
+  if (mode === 'file') return files.length > 0;
+  if (mode === 'paste') return !!$('paste').value.trim();
+  if (mode === 'link') return !!$('url').value.trim();
+  return !!$('pdf').files[0];
+}
+async function thumb(buf){
+  try {
+    const url = URL.createObjectURL(new Blob([buf], {type:'image/png'}));
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    c.getContext('2d').drawImage(img, 0, 0, 64, 64);
+    URL.revokeObjectURL(url);
+    return c.toDataURL('image/png');
+  } catch(e){ return ''; }
+}
+function uniqueRepo(base){
+  const used = loadApps().map(a => a.repo);
+  let r = base, i = 2;
+  while (used.includes(r)) r = base + '-' + (i++);
+  return r;
+}
+
+const PERM_KEYS = ['cam', 'mic', 'loc', 'not', 'ble', 'usb'];
+function getPerms(){ return PERM_KEYS.filter(k => $('p-' + k).checked); }
+function setPerms(arr){ PERM_KEYS.forEach(k => { $('p-' + k).checked = arr.includes(k); }); }
+function detectPerms(t){
+  t = (t || '').toLowerCase();
+  const out = [];
+  const gum = new RegExp('getuser' + 'media|media' + 'devices|capture\\s*=').test(t);
+  const speech = new RegExp('speech' + 'recognition').test(t);
+  if (gum) {
+    const v = /video\s*:|capture\s*=|facingmode/.test(t), a = /audio\s*:\s*(true|\{)|mediarecorder/.test(t);
+    if (v || !a) out.push('cam');
+    if (a || !v) out.push('mic');
+  } else if (speech) out.push('mic');
+  if (new RegExp('navigator\\.geo' + 'location').test(t)) out.push('loc');
+  if (new RegExp('new\\s+notifi' + 'cation\\s*\\(|notifi' + 'cation\\.request').test(t)) out.push('not');
+  if (new RegExp('navigator\\.blue' + 'tooth').test(t)) out.push('ble');
+  if (new RegExp('navigator\\.u' + 'sb').test(t)) out.push('usb');
+  return out;
+}
+function getTypes(){ return TYPE_KEYS.filter(k => $('t-' + k).checked); }
+function setTypes(arr){ TYPE_KEYS.forEach(k => { $('t-' + k).checked = arr.includes(k); }); }
+function detectTypes(t){
+  t = (t || '').toLowerCase();
+  const out = [];
+  if (!/type\s*=\s*["']?file|filereader|showopenfilepicker/.test(t)) return out;
+  const a = (t.match(/accept\s*=\s*["'][^"']*["']/g) || []).join(' ');
+  if (/pdf/.test(a)) out.push('pdf');
+  if (/image|\.png|\.jpe?g|\.webp|\.gif/.test(a)) out.push('image');
+  if (/text|\.txt|\.csv|\.json|\.html?|\.md/.test(a)) out.push('text');
+  if (/audio|video|\.mp3|\.mp4|\.wav/.test(a)) out.push('media');
+  if (!out.length) out.push(/pdf/.test(t) ? 'pdf' : 'all');
+  return out;
+}
+async function contentText(){
+  try {
+    if (mode === 'file') { let t = ''; for (const f of files) if (/\.(html?|js)$/i.test(f.path)) t += (await f.file.text()) + '\n'; return t; }
+    if (mode === 'paste') return $('paste').value;
+  } catch(e){}
+  return '';
+}
+function titleCase(s){ return s.replace(/[-_.]+/g, ' ').trim().replace(/\s+/g, ' ').replace(/(^|\s)\S/g, c => c.toUpperCase()); }
+async function guessName(){
+  try {
+    const tt = /<title[^>]*>\s*([^<]{1,60}?)\s*<\/title>/i;
+    if (mode === 'file') {
+      const f = files.find(x => x.path === $('main').value);
+      if (f) {
+        const m = tt.exec(await f.file.text());
+        if (m && m[1].trim()) return m[1].trim();
+        return titleCase(f.path.split('/').pop().replace(/\.[^.]+$/, ''));
+      }
+    } else if (mode === 'paste') {
+      const m = tt.exec($('paste').value);
+      if (m && m[1].trim()) return m[1].trim();
+    } else if (mode === 'link') {
+      let u = $('url').value.trim();
+      if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+      return titleCase(new URL(u).hostname.replace(/^www\./, '').split('.')[0]);
+    } else {
+      const f = $('pdf').files[0];
+      if (f) return titleCase(f.name.replace(/\.[^.]+$/, ''));
+    }
+  } catch(e){}
+  return 'Uygulamam';
+}
+async function makeAutoIcon(name){
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  const c = document.createElement('canvas'); c.width = c.height = 192;
+  const x = c.getContext('2d');
+  x.fillStyle = 'hsl(' + h + ',55%,42%)';
+  x.beginPath();
+  if (x.roundRect) x.roundRect(0, 0, 192, 192, 44); else x.rect(0, 0, 192, 192);
+  x.fill();
+  x.fillStyle = '#fff'; x.font = '700 110px system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(name.charAt(0).toUpperCase(), 96, 102);
+  return new Promise(r => c.toBlob(r, 'image/png'));
+}
+async function fillAuto(){
+  const name = ((await guessName()) || '').slice(0, 28).trim() || 'Uygulamam';
+  $('name').value = name;
+  const base = 'com.example.' + slugPkg(name), used = loadApps().map(a => a.pkg);
+  let p = base, i = 2;
+  while (used.includes(p)) p = base + (i++);
+  pkgEdited = true; $('pkg').value = p;
+  $('ver').value = '1.0'; $('ori').value = 'unspecified'; $('full').checked = false;
+  autoIconBlob = await makeAutoIcon(name);
+  const txt = await contentText();
+  setTypes(detectTypes(txt)); setPerms(detectPerms(txt));
+}
+
+async function buildApk(){
+  $('log').innerHTML = ''; $('result').innerHTML = '';
+  token = getToken();
+  if (!token) { log("Önce ☰ menüsünden GitHub token'ını kaydet.", 'err'); openDrawer(); return; }
+  if (level === 'quick' && !editing) await fillAuto();
+  const pkg = $('pkg').value.trim();
+  if (!/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(pkg)) return log('Paket adı geçersiz (örn. com.firma.uygulama).', 'err');
+
+  $('go').disabled = true; $('prev').disabled = true;
+  try {
+    const oldSrc = editing ? await srcGet(editing.id).catch(() => null) : null;
+    let input;
+    if (hasNewContent() || !editing) input = await collectInput();
+    else if (oldSrc) input = {assets: oldSrc.assets, startUrl: oldSrc.startUrl};
+    else throw new Error('Kayıtlı içerik bulunamadı; yeni içerik seç.');
+    const iconFile = $('icon').files[0];
+    const iconBuf = iconFile ? await iconFile.arrayBuffer() : ((oldSrc && oldSrc.iconBuf) || (level === 'quick' && autoIconBlob ? await autoIconBlob.arrayBuffer() : null));
+    const name = $('name').value.trim() || 'Uygulama';
+    const ver = $('ver').value.trim() || '1.0';
+    const list = projectFiles({
+      pkg, name, ver, vc: Math.floor(Date.now() / 1000), types: getTypes(), perms: getPerms(),
+      ori: $('ori').value, full: $('full').checked,
+      assets: input.startUrl === LOCAL ? withShim(input.assets) : input.assets,
+      startUrl: input.startUrl, iconBuf
+    });
+
+    log('Hesap doğrulanıyor…');
+    const me = await gh('/user'); const owner = me.login;
+    log('Hesap: ' + owner, 'ok');
+
+    const rname = editing ? editing.repo : uniqueRepo('apk-' + slugPkg(name));
+    const pub = getPub();
+    log('Depo hazırlanıyor…');
+    let repo;
+    try { repo = await gh(`/repos/${owner}/${rname}`); }
+    catch(e){
+      if (e.status !== 404) throw e;
+      repo = await gh('/user/repos', {method:'POST', body:{name:rname, private:!pub, auto_init:true, description:'APK build'}});
+    }
+    const branch = repo.default_branch || 'main';
+    if (pub && repo.private) {
+      await gh(`/repos/${owner}/${rname}`, {method:'PATCH', body:{private:false}});
+      log('Depo herkese açık yapıldı.', 'ok');
+    }
+
+    let baseSha = null;
+    for (let i = 0; i < 10 && !baseSha; i++) {
+      try { baseSha = (await gh(`/repos/${owner}/${rname}/git/ref/heads/${branch}`)).object.sha; }
+      catch(e){ await sleep(2000); }
+    }
+    if (!baseSha) throw new Error('Depo dalı bulunamadı.');
+
+    const tree = [];
+    for (let i = 0; i < list.length; i++) {
+      log(`Yükleniyor ${i+1}/${list.length}`, '', i > 0);
+      const b = await gh(`/repos/${owner}/${rname}/git/blobs`, {method:'POST', body:{content:b64(list[i].content), encoding:'base64'}});
+      tree.push({path:list[i].path, mode:'100644', type:'blob', sha:b.sha});
+    }
+    log('Yükleme tamam', 'ok', true);
+
+    const newTree = await gh(`/repos/${owner}/${rname}/git/trees`, {method:'POST', body:{tree}});
+    const commit = await gh(`/repos/${owner}/${rname}/git/commits`, {method:'POST', body:{message:'APK build', tree:newTree.sha, parents:[baseSha]}});
+    await gh(`/repos/${owner}/${rname}/git/refs/heads/${branch}`, {method:'PATCH', body:{sha:commit.sha, force:true}});
+    log('Dosyalar gönderildi. Derleme başlıyor…', 'ok');
+
+    log('Derleme bekleniyor…');
+    let run = null;
+    for (let i = 0; i < 80; i++) {
+      await sleep(8000);
+      const r = await gh(`/repos/${owner}/${rname}/actions/runs?head_sha=${commit.sha}`);
+      run = r.workflow_runs && r.workflow_runs[0];
+      if (run) {
+        log(`Derleme durumu: ${run.status} (${(i+1)*8} sn)`, '', true);
+        if (run.status === 'completed') break;
+      } else log(`Derleme sıraya alınıyor… (${(i+1)*8} sn)`, '', true);
+    }
+    if (!run || run.status !== 'completed') throw new Error('Derleme zaman aşımına uğradı. GitHub Actions sekmesinden takip et.');
+    if (run.conclusion !== 'success') {
+      $('result').innerHTML = `<a class="btn" target="_blank" rel="noopener" href="${run.html_url}">Hata kaydını aç</a>`;
+      throw new Error('Derleme başarısız: ' + run.conclusion);
+    }
+    log('Derleme başarılı!', 'ok', true);
+
+    const rel = await gh(`/repos/${owner}/${rname}/releases/latest`);
+    const apk = (rel.assets || []).find(a => a.name.endsWith('.apk'));
+    if (!apk) throw new Error('APK dosyası sürümde bulunamadı.');
+
+    const now = Date.now();
+    const rec = {
+      id: editing ? editing.id : 'a' + now, name, pkg, repo: rname, owner, ver,
+      ori: $('ori').value, full: $('full').checked, types: getTypes(), perms: getPerms(), created: editing ? editing.created : now, updated: now,
+      apkUrl: apk.browser_download_url,
+      icon: iconBuf ? await thumb(iconBuf) : ((editing && editing.icon) || '')
+    };
+    saveApps(loadApps().filter(x => x.id !== rec.id).concat(rec));
+    try { await srcPut(rec.id, {assets: input.assets, startUrl: input.startUrl, iconBuf}); } catch(e){}
+    editing = rec;
+
+    $('result').innerHTML = `<a class="btn" href="${apk.browser_download_url}">APK'yı indir</a><button class="sec" id="toHome">Ana ekrana dön</button><small style="text-align:center">APK debug imzalıdır. Listede “Düzenle” ile güncelleyebilirsin.</small>`;
+    $('toHome').onclick = () => history.back();
+  } catch(e){
+    log('Hata: ' + e.message, 'err');
+  }
+  $('go').disabled = false; $('prev').disabled = false;
+}
+$('go').onclick = buildApk;
+
+// ---- İkon kırpma ----
+let iconCurrent = null, iconSrc = null, icUrl = null, cr = null;
+function setIconPreview(x){
+  const box = $('icPrev');
+  if (icUrl) { URL.revokeObjectURL(icUrl); icUrl = null; }
+  box.textContent = '';
+  if (!x) { box.textContent = '+'; return; }
+  const im = document.createElement('img');
+  if (typeof x === 'string') im.src = x; else { icUrl = URL.createObjectURL(x); im.src = icUrl; }
+  box.appendChild(im);
+}
+function shapePath(c, x, y, s, shape){
+  if (shape === 'circle') { c.moveTo(x + s, y + s / 2); c.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2); }
+  else {
+    const r = s * 0.22;
+    c.moveTo(x + r, y);
+    c.arcTo(x + s, y, x + s, y + s, r); c.arcTo(x + s, y + s, x, y + s, r);
+    c.arcTo(x, y + s, x, y, r); c.arcTo(x, y, x + s, y, r);
+    c.closePath();
+  }
+}
+function drawCrop(){
+  if (!cr) return;
+  const V = cr.V, c = $('cv').getContext('2d');
+  c.clearRect(0, 0, V, V);
+  const q = 28;
+  for (let i = 0; i < V / q; i++) for (let j = 0; j < V / q; j++) { c.fillStyle = (i + j) % 2 ? '#ccc' : '#eee'; c.fillRect(i * q, j * q, q, q); }
+  const w = cr.img.width * cr.scale, h = cr.img.height * cr.scale;
+  c.drawImage(cr.img, V / 2 + cr.x - w / 2, V / 2 + cr.y - h / 2, w, h);
+  if (cr.shape !== 'square') {
+    c.save(); c.fillStyle = 'rgba(0,0,0,.6)';
+    c.beginPath(); c.rect(0, 0, V, V); shapePath(c, 0, 0, V, cr.shape);
+    c.fill('evenodd'); c.restore();
+  }
+}
+function setScale(v){
+  cr.scale = Math.max(cr.min, Math.min(cr.max, v));
+  $('cz').value = Math.log(cr.scale / cr.min) / Math.log(cr.max / cr.min) * 100;
+}
+function markShape(){ document.querySelectorAll('#crop [data-sh]').forEach(b => b.classList.toggle('on', b.dataset.sh === cr.shape)); }
+function openCrop(file){
+  iconSrc = file;
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const V = 560, S = Math.min(300, window.innerWidth - 60), cv = $('cv');
+    cv.width = V; cv.height = V; cv.style.width = S + 'px'; cv.style.height = S + 'px';
+    const cover = Math.max(V / img.width, V / img.height), fit = Math.min(V / img.width, V / img.height);
+    cr = {img, V, S, min: fit * 0.4, max: cover * 5, scale: cover, x: 0, y: 0, shape: 'square'};
+    setScale(cover); markShape(); drawCrop();
+    $('crop').hidden = false;
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); log('İkon resmi okunamadı.', 'err'); restoreIconInput(); };
+  img.src = url;
+}
+function restoreIconInput(){
+  if (iconCurrent) { const dt = new DataTransfer(); dt.items.add(iconCurrent); $('icon').files = dt.files; }
+  else $('icon').value = '';
+}
+function closeCrop(){ $('crop').hidden = true; cr = null; }
+async function exportCrop(){
+  const OUT = 192, k = OUT / cr.V, o = document.createElement('canvas');
+  o.width = o.height = OUT;
+  const c = o.getContext('2d');
+  if (cr.shape !== 'square') { c.beginPath(); shapePath(c, 0, 0, OUT, cr.shape); c.clip(); }
+  const w = cr.img.width * cr.scale * k, h = cr.img.height * cr.scale * k;
+  c.drawImage(cr.img, OUT / 2 + cr.x * k - w / 2, OUT / 2 + cr.y * k - h / 2, w, h);
+  return new Promise(r => o.toBlob(r, 'image/png'));
+}
+(function(){
+  const cv = $('cv'), ptrs = new Map();
+  let lastDist = 0;
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); lastDist = 0; });
+  cv.addEventListener('pointermove', e => {
+    if (!cr || !ptrs.has(e.pointerId)) return;
+    const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    const k = cr.V / cr.S;
+    if (ptrs.size === 1) { cr.x += (e.clientX - prev[0]) * k; cr.y += (e.clientY - prev[1]) * k; }
+    else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (lastDist) setScale(cr.scale * d / lastDist);
+      lastDist = d;
+    }
+    drawCrop();
+  });
+  ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => { ptrs.delete(e.pointerId); lastDist = 0; }));
+  cv.addEventListener('wheel', e => { if (!cr) return; e.preventDefault(); setScale(cr.scale * (e.deltaY < 0 ? 1.08 : 0.92)); drawCrop(); }, {passive: false});
+})();
+$('cz').oninput = () => { if (!cr) return; cr.scale = cr.min * Math.pow(cr.max / cr.min, $('cz').value / 100); drawCrop(); };
+document.querySelectorAll('#crop [data-sh]').forEach(b => { b.onclick = () => { if (!cr) return; cr.shape = b.dataset.sh; markShape(); drawCrop(); }; });
+$('cCancel').onclick = () => { closeCrop(); restoreIconInput(); };
+$('cOk').onclick = async () => {
+  if (!cr) return;
+  const blob = await exportCrop();
+  iconCurrent = new File([blob], 'icon.png', {type: 'image/png'});
+  const dt = new DataTransfer(); dt.items.add(iconCurrent); $('icon').files = dt.files;
+  setIconPreview(iconCurrent);
+  closeCrop();
+};
+$('icon').addEventListener('change', e => { const f = e.target.files[0]; if (f && f !== iconCurrent) openCrop(f); });
+$('icPrev').onclick = () => { const f = iconSrc || iconCurrent; if (f) openCrop(f); else $('icon').click(); };
+
+// ---- Başlangıç ----
+if (location.hash === '#new') location.hash = '';
+route();
+</script>
+</body>
+</html>

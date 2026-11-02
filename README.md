@@ -1,2 +1,0 @@
-# apk-htmlapkdirekt
-APK build

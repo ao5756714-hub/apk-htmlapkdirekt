@@ -1,0 +1,14 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'com.example.htmlapkdirekt'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.example.htmlapkdirekt'
+        minSdk 21
+        targetSdk 34
+        versionCode 1793611044
+        versionName '1.0'
+    }
+}
