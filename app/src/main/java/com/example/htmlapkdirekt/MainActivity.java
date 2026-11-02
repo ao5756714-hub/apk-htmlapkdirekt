@@ -2,6 +2,13 @@ package com.example.htmlapkdirekt;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import java.util.HashMap;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ClipboardManager;
 import android.content.pm.PackageManager;
 import android.view.View;
@@ -55,6 +62,9 @@ public class MainActivity extends Activity {
     private String pendingText = null;
     private String shimJs = "";
     private static final int PERM_REQ = 1003;
+    private static final int NOTIF_REQ = 1005;
+    private final HashMap<String, FileOutputStream> saveOut = new HashMap<String, FileOutputStream>();
+    private final HashMap<String, String[]> saveMeta = new HashMap<String, String[]>();
     private PermissionRequest pendingPerm = null;
     private GeolocationPermissions.Callback pendingGeoCb = null;
     private String pendingGeoOrigin = null;
@@ -166,6 +176,71 @@ public class MainActivity extends Activity {
                     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 }
             });
+        }
+
+        @JavascriptInterface
+        public String notifPerm() {
+            if (Build.VERSION.SDK_INT >= 33) {
+                return checkSelfPermission("android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED ? "granted" : "default";
+            }
+            return notificationsEnabled() ? "granted" : "denied";
+        }
+
+        @JavascriptInterface
+        public void notifRequest() {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED) {
+                            js("window.__notifResolve && window.__notifResolve('granted')");
+                        } else {
+                            requestPermissions(new String[] { "android.permission.POST_NOTIFICATIONS" }, NOTIF_REQ);
+                        }
+                    } else {
+                        js("window.__notifResolve && window.__notifResolve('" + (notificationsEnabled() ? "granted" : "denied") + "')");
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void showNote(String title, String body, String tag) {
+            showNotification(title, body, tag);
+        }
+
+        @JavascriptInterface
+        public void beginSave(String id, String name, String mime) {
+            try {
+                File dir = new File(getCacheDir(), "dl");
+                dir.mkdirs();
+                saveOut.put(id, new FileOutputStream(new File(dir, id + ".tmp")));
+                saveMeta.put(id, new String[] { name, mime });
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
+        }
+
+        @JavascriptInterface
+        public void chunkSave(String id, String b64) {
+            try {
+                FileOutputStream fo = saveOut.get(id);
+                if (fo != null) fo.write(Base64.decode(b64, Base64.DEFAULT));
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
+        }
+
+        @JavascriptInterface
+        public void endSave(String id) {
+            try {
+                FileOutputStream fo = saveOut.remove(id);
+                String[] meta = saveMeta.remove(id);
+                if (fo == null || meta == null) return;
+                fo.close();
+                finishDownload(new File(new File(getCacheDir(), "dl"), id + ".tmp"), meta[0], meta[1]);
+            } catch (Exception e) {
+                toast("Kaydedilemedi: " + e);
+            }
         }
 
         @JavascriptInterface
@@ -317,36 +392,82 @@ public class MainActivity extends Activity {
 
     private void fetchAndSave(String url, String cd, String mime) {
         String name = URLUtil.guessFileName(url.startsWith("data:") ? "download" : url, cd, mime);
-        String m = mime == null ? "" : mime;
         js("(function(){fetch(" + JSONObject.quote(url) + ").then(function(r){return r.blob();}).then(function(b){"
-                + "var fr=new FileReader();fr.onload=function(){AndroidFiles.saveBlob(" + JSONObject.quote(name) + ","
-                + "(b.type||" + JSONObject.quote(m) + "),String(fr.result).split(',')[1]||'');};fr.readAsDataURL(b);});})()");
+                + "if(window.__apkSaveBlob)window.__apkSaveBlob(b," + JSONObject.quote(name) + ");});})()");
     }
 
     private void saveDownload(String name, String mime, byte[] data) {
         try {
+            File dir = new File(getCacheDir(), "dl");
+            dir.mkdirs();
+            File f = new File(dir, "t" + System.currentTimeMillis() + ".tmp");
+            FileOutputStream fo = new FileOutputStream(f);
+            fo.write(data);
+            fo.close();
+            finishDownload(f, name, mime);
+        } catch (Exception e) {
+            toast("Kaydedilemedi: " + e);
+        }
+    }
+
+    private void copyFile(File src, OutputStream os) throws Exception {
+        InputStream in = new java.io.FileInputStream(src);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+        in.close();
+        os.close();
+    }
+
+    private void finishDownload(File src, String name, String mime) {
+        try {
             if (name == null || name.length() == 0) name = "dosya";
             if (mime == null || mime.length() == 0) mime = "application/octet-stream";
+            Uri opened = null;
             if (Build.VERSION.SDK_INT >= 29) {
                 ContentValues v = new ContentValues();
                 v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
                 v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
                 v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
                 Uri u = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-                OutputStream os = getContentResolver().openOutputStream(u);
-                os.write(data);
-                os.close();
+                copyFile(src, getContentResolver().openOutputStream(u));
+                opened = u;
             } else {
                 File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
                 dir.mkdirs();
-                FileOutputStream fo = new FileOutputStream(new File(dir, name));
-                fo.write(data);
-                fo.close();
+                copyFile(src, new FileOutputStream(new File(dir, name)));
             }
-            toast("Indirilenlere kaydedildi: " + name);
+            src.delete();
+            showSaved(name, mime, opened);
         } catch (Exception e) {
             toast("Kaydedilemedi: " + e);
         }
+    }
+
+    private void showSaved(final String name, final String mime, final Uri uri) {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                AlertDialog.Builder b = new AlertDialog.Builder(MainActivity.this);
+                b.setTitle("Indirildi");
+                b.setMessage(name + " dosyasi Indirilenler klasorune kaydedildi.");
+                b.setNegativeButton("Tamam", null);
+                if (uri != null) {
+                    b.setPositiveButton("Ac", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface d, int w) {
+                            try {
+                                Intent it = new Intent(Intent.ACTION_VIEW);
+                                it.setDataAndType(uri, mime);
+                                it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                startActivity(it);
+                            } catch (Exception e) {
+                                toast("Acilamadi: " + e);
+                            }
+                        }
+                    });
+                }
+                b.show();
+            }
+        });
     }
 
     private void doShare(String title, String text, String url, String filesJson) {
@@ -496,6 +617,41 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private boolean notificationsEnabled() {
+        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        return Build.VERSION.SDK_INT >= 24 ? nm.areNotificationsEnabled() : true;
+    }
+
+    private void showNotification(String title, String body, String tag) {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            Notification.Builder b;
+            if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new NotificationChannel("apk_default", "Bildirimler", NotificationManager.IMPORTANCE_DEFAULT));
+                b = new Notification.Builder(this, "apk_default");
+            } else {
+                b = new Notification.Builder(this);
+            }
+            Intent in = new Intent(this, MainActivity.class);
+            in.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent pi = PendingIntent.getActivity(this, 0, in, Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+            b.setSmallIcon(android.R.drawable.ic_dialog_info);
+            b.setContentTitle(title);
+            b.setContentText(body);
+            b.setAutoCancel(true);
+            b.setContentIntent(pi);
+            int id = (tag != null && tag.length() > 0) ? tag.hashCode() : (int) (System.currentTimeMillis() & 0x7fffffff);
+            nm.notify(id, b.build());
+        } catch (Exception e) {
+            toast("Bildirim gosterilemedi: " + e);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
     private ArrayList<String> missingPerms(ArrayList<String> need) {
         ArrayList<String> m = new ArrayList<String>();
         if (Build.VERSION.SDK_INT < 23) return m;
@@ -525,6 +681,8 @@ public class MainActivity extends Activity {
         } else if (requestCode == PERM_REQ + 1 && pendingGeoCb != null) {
             pendingGeoCb.invoke(pendingGeoOrigin, ok, false);
             pendingGeoCb = null;
+        } else if (requestCode == NOTIF_REQ) {
+            js("window.__notifResolve && window.__notifResolve('" + (ok ? "granted" : "denied") + "')");
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }

@@ -55,6 +55,140 @@
     Object.defineProperty(navigator, 'wakeLock', {configurable: true, value: wl});
   } catch(e){}
 
+  try {
+    var NS = function(title, opts){
+      opts = opts || {};
+      A.showNote(String(title), String(opts.body || ''), String(opts.tag || ''));
+      this.title = String(title);
+      this.body = opts.body || '';
+      this.close = function(){};
+      this.addEventListener = function(){};
+      this.removeEventListener = function(){};
+    };
+    NS.permission = A.notifPerm();
+    NS.requestPermission = function(cb){
+      return new Promise(function(res){
+        window.__notifResolve = function(p){ NS.permission = p; if (cb) cb(p); res(p); };
+        A.notifRequest();
+      });
+    };
+    Object.defineProperty(window, 'Notification', {configurable: true, writable: true, value: NS});
+  } catch(e){}
+
+  try {
+    window.showSaveFilePicker = function(opts){
+      opts = opts || {};
+      var name = opts.suggestedName || 'dosya', mime = 'application/octet-stream', chunks = [];
+      try { mime = Object.keys(opts.types[0].accept)[0] || mime; } catch(e){}
+      var handle = {kind: 'file', name: name};
+      handle.getFile = function(){ return Promise.resolve(new File(chunks, name, {type: mime})); };
+      handle.createWritable = function(){
+        chunks = [];
+        return Promise.resolve({
+          write: function(d){ if (d && d.type === 'write') d = d.data; chunks.push(d); return Promise.resolve(); },
+          close: function(){ var b = new Blob(chunks, {type: mime}); return b64(b).then(function(x){ A.saveBlob(name, mime, x); }); },
+          abort: function(){ chunks = []; return Promise.resolve(); }
+        });
+      };
+      return Promise.resolve(handle);
+    };
+    window.showOpenFilePicker = function(opts){
+      opts = opts || {};
+      return new Promise(function(res, rej){
+        var inp = document.createElement('input');
+        inp.type = 'file';
+        inp.multiple = !!opts.multiple;
+        var acc = [];
+        (opts.types || []).forEach(function(t){
+          Object.keys(t.accept || {}).forEach(function(m){ acc.push(m); (t.accept[m] || []).forEach(function(x){ acc.push(x); }); });
+        });
+        if (acc.length) inp.accept = acc.join(',');
+        inp.onchange = function(){
+          var hs = Array.prototype.map.call(inp.files, function(f){
+            return {kind: 'file', name: f.name, getFile: function(){ return Promise.resolve(f); }};
+          });
+          if (hs.length) res(hs); else rej(new DOMException('Iptal', 'AbortError'));
+        };
+        inp.addEventListener('cancel', function(){ rej(new DOMException('Iptal', 'AbortError')); });
+        inp.click();
+      });
+    };
+  } catch(e){}
+
+  var blobs = {}, blobOrder = [];
+  try {
+    var oCreate = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = function(o){
+      var u = oCreate(o);
+      if (o instanceof Blob) {
+        blobs[u] = o; blobOrder.push(u);
+        while (blobOrder.length > 30) delete blobs[blobOrder.shift()];
+      }
+      return u;
+    };
+  } catch(e){}
+  function saveBlobObj(blob, name){
+    var mime = blob.type || 'application/octet-stream';
+    var id = 'd' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    A.beginSave(id, name, mime);
+    var CH = 393216, pos = 0;
+    function next(){
+      if (pos >= blob.size) { A.endSave(id); return Promise.resolve(); }
+      var part = blob.slice(pos, pos + CH);
+      pos += CH;
+      return b64(part).then(function(x){ A.chunkSave(id, x); return next(); });
+    }
+    return next();
+  }
+  window.__apkSaveBlob = saveBlobObj;
+  function nameFor(a, blob){
+    var n = a.getAttribute('download') || '';
+    if (!n) { try { n = decodeURIComponent((a.href || '').split('?')[0].split('/').pop()); } catch(e){} }
+    if (!n || n.indexOf('blob:') === 0) n = 'dosya';
+    if (n.indexOf('.') < 0) {
+      var ext = {'application/pdf': '.pdf', 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'text/plain': '.txt', 'text/html': '.html', 'application/json': '.json', 'text/csv': '.csv'}[blob.type];
+      if (ext) n += ext;
+    }
+    return n;
+  }
+  function fetchSave(a){
+    fetch(a.href).then(function(r){ return r.blob(); }).then(function(b){ saveBlobObj(b, nameFor(a, b)); });
+  }
+  function handleAnchor(a){
+    if (!a || !a.hasAttribute || !a.hasAttribute('download')) return false;
+    var h = a.href || '';
+    if (h.indexOf('blob:') === 0) {
+      var blob = blobs[h];
+      if (blob) saveBlobObj(blob, nameFor(a, blob)); else fetchSave(a);
+      return true;
+    }
+    if (h.indexOf('data:') === 0 || h.indexOf('file:') === 0) { fetchSave(a); return true; }
+    return false;
+  }
+  try {
+    var oClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function(){ if (handleAnchor(this)) return; return oClick.call(this); };
+    var oDisp = HTMLAnchorElement.prototype.dispatchEvent;
+    HTMLAnchorElement.prototype.dispatchEvent = function(ev){
+      if (ev && ev.type === 'click' && handleAnchor(this)) return true;
+      return oDisp.call(this, ev);
+    };
+    document.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (a && handleAnchor(a)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    var oOpen = window.open;
+    window.open = function(u){
+      if (typeof u === 'string' && (u.indexOf('blob:') === 0 || u.indexOf('data:') === 0)) {
+        var a = document.createElement('a');
+        a.href = u; a.setAttribute('download', '');
+        handleAnchor(a);
+        return null;
+      }
+      return oOpen.apply(window, arguments);
+    };
+  } catch(e){}
+
   var inc = [];
   function accepts(inp, f){
     var a = (inp.getAttribute('accept') || '').toLowerCase();
