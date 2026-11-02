@@ -2,6 +2,8 @@ package com.example.htmlapkdirekt;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import java.util.HashMap;
@@ -60,6 +62,7 @@ public class MainActivity extends Activity {
     private boolean pageReady = false;
     private ArrayList<Uri> pendingUris = null;
     private String pendingText = null;
+    private String pendingLink = null;
     private String shimJs = "";
     private static final int PERM_REQ = 1003;
     private static final int NOTIF_REQ = 1005;
@@ -253,6 +256,34 @@ public class MainActivity extends Activity {
         }
     }
 
+    public class RemoteBridge {
+        private final Bridge b = new Bridge();
+
+        @JavascriptInterface
+        public void print() { b.print(); }
+
+        @JavascriptInterface
+        public void share(String title, String text, String url, String filesJson) { b.share(title, text, url, filesJson); }
+
+        @JavascriptInterface
+        public void copy(String text) { b.copy(text); }
+
+        @JavascriptInterface
+        public void keepAwake(boolean on) { b.keepAwake(on); }
+
+        @JavascriptInterface
+        public void beginSave(String id, String name, String mime) { b.beginSave(id, name, mime); }
+
+        @JavascriptInterface
+        public void chunkSave(String id, String data) { b.chunkSave(id, data); }
+
+        @JavascriptInterface
+        public void endSave(String id) { b.endSave(id); }
+
+        @JavascriptInterface
+        public void saveBlob(String name, String mime, String data) { b.saveBlob(name, mime, data); }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -271,7 +302,7 @@ public class MainActivity extends Activity {
         }
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
-        if (LOCAL) shimJs = readAsset("_apkshim.js");
+        shimJs = readAsset("_apkshim.js");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -284,8 +315,14 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                if (shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
-                if (LOCAL && shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
+                if (shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
                 pageReady = true;
                 flushPending();
             }
@@ -361,13 +398,37 @@ public class MainActivity extends Activity {
         web.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String ua, String cd, String mime, long len) {
-                if (LOCAL && (url.startsWith("blob:") || url.startsWith("data:"))) fetchAndSave(url, cd, mime);
+                if (url.startsWith("blob:") || url.startsWith("data:")) fetchAndSave(url, cd, mime);
                 else openExternal(url);
             }
         });
         if (LOCAL) web.addJavascriptInterface(new Bridge(), "AndroidFiles");
+        else web.addJavascriptInterface(new RemoteBridge(), "AndroidFiles");
         web.loadUrl("file:///android_asset/index.html");
         handleIntent(getIntent());
+    }
+
+    private void askLinkSettings() {
+        try {
+            if (Build.VERSION.SDK_INT < 31) return;
+            SharedPreferences sp = getSharedPreferences("apk_prefs", MODE_PRIVATE);
+            if (sp.getBoolean("link_hint", false)) return;
+            sp.edit().putBoolean("link_hint", true).apply();
+            AlertDialog.Builder b = new AlertDialog.Builder(this);
+            b.setTitle("Baglantilari bu uygulamada ac");
+            b.setMessage("E-postadaki giris baglantilari bu uygulamada acilsin istiyorsan, acilan ekranda 'Desteklenen baglantilari ac' ayarini etkinlestir ve alan adini ekle.");
+            b.setNegativeButton("Simdi degil", null);
+            b.setPositiveButton("Ayarlari ac", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface d, int w) {
+                    try {
+                        startActivity(new Intent("android.settings.APP_OPEN_BY_DEFAULT_SETTINGS", Uri.parse("package:" + getPackageName())));
+                    } catch (Exception e) {
+                        toast("Ayarlar acilamadi: " + e);
+                    }
+                }
+            });
+            b.show();
+        } catch (Exception e) { }
     }
 
     private String readAsset(String name) {
@@ -522,6 +583,18 @@ public class MainActivity extends Activity {
     private void handleIntent(Intent it) {
         if (it == null) return;
         String act = it.getAction();
+        if (Intent.ACTION_VIEW.equals(act) && it.getData() != null
+                && ("http".equals(it.getData().getScheme()) || "https".equals(it.getData().getScheme()))) {
+            String link = it.getData().toString();
+            it.setAction(null);
+            if (LOCAL) {
+                pendingLink = link;
+                if (pageReady) flushPending();
+            } else {
+                web.loadUrl(link);
+            }
+            return;
+        }
         ArrayList<Uri> uris = new ArrayList<Uri>();
         String text = null;
         if (Intent.ACTION_VIEW.equals(act) && it.getData() != null) {
@@ -543,6 +616,11 @@ public class MainActivity extends Activity {
     }
 
     private void flushPending() {
+        if (pendingLink != null) {
+            String l = pendingLink;
+            pendingLink = null;
+            js("window.dispatchEvent(new CustomEvent('apklink',{detail:{url:" + JSONObject.quote(l) + "}}))");
+        }
         final ArrayList<Uri> u = pendingUris;
         final String t = pendingText;
         pendingUris = null;

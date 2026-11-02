@@ -87,6 +87,7 @@ small{color:var(--mut);display:block;margin-top:5px;font-size:11px}
 .cbox{position:relative;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;width:min(340px,94vw);text-align:center}
 .cbox canvas{display:block;margin:8px auto;border-radius:8px;touch-action:none}
 button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+#advCard.q #verBox,#advCard.q #pkgBox,#advCard.q #oriBox,#advCard.q #advRest{display:none}
 </style>
 </head>
 <body>
@@ -105,6 +106,7 @@ button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 
 <section id="editor" hidden>
   <div class="banner" id="banner" hidden></div>
+  <button class="sec" id="toAdv" hidden style="margin:0 0 10px">Gelişmiş ayarlara geç</button>
   <div class="tabs">
     <button data-m="file" class="on">Dosya</button>
     <button data-m="paste">Yapıştır</button>
@@ -130,7 +132,7 @@ button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
     </div>
     <div class="panel" id="p-link">
       <input type="text" id="url" placeholder="https://ornek.com" autocapitalize="none" autocorrect="off">
-      <small>Uygulama bu siteyi açar; internet gerekir.</small>
+      <small>Uygulama bu siteyi açar; internet gerekir. E-postadaki giriş bağlantılarının uygulamada açılması için sitenin alan adı otomatik eklenir (Gelişmiş modda değiştirebilirsin).</small>
     </div>
     <div class="panel" id="p-pdf">
       <input type="file" id="pdf" accept="application/pdf">
@@ -141,16 +143,17 @@ button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
   <div class="card" id="advCard">
     <div class="row">
       <div><label style="margin-top:0">Uygulama adı</label><input type="text" id="name" value="Uygulamam"></div>
-      <div style="flex:.45"><label style="margin-top:0">Sürüm</label><input type="text" id="ver" value="1.0"></div>
+      <div id="verBox" style="flex:.45"><label style="margin-top:0">Sürüm</label><input type="text" id="ver" value="1.0"></div>
     </div>
-    <label>Paket adı</label>
-    <input type="text" id="pkg" value="com.example.uygulamam" autocapitalize="none" autocorrect="off">
+    <div id="pkgBox"><label>Paket adı</label>
+    <input type="text" id="pkg" value="com.example.uygulamam" autocapitalize="none" autocorrect="off"></div>
     <div class="row">
-      <div><label>Yön</label>
+      <div id="oriBox"><label>Yön</label>
         <select id="ori"><option value="unspecified">Otomatik</option><option value="portrait">Dikey</option><option value="landscape">Yatay</option></select>
       </div>
       <div><label>İkon (dokun: kırp)</label><div class="icrow"><div class="icp" id="icPrev">+</div><input type="file" id="icon" accept="image/*"></div></div>
     </div>
+    <div id="advRest">
     <label class="chk"><input type="checkbox" id="full"> Tam ekran</label>
     <label>Bu uygulamayla açılacak / paylaşılacak dosyalar</label>
     <div class="types">
@@ -169,6 +172,9 @@ button.sec.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
       <label><input type="checkbox" id="p-ble"> Bluetooth</label>
       <label><input type="checkbox" id="p-usb"> USB</label>
       <label><input type="checkbox" id="p-inst"> APK kurma</label>
+    </div>
+    <label>Bu uygulamada açılacak site bağlantıları (alan adı, virgülle)</label>
+    <input type="text" id="domains" placeholder="ornek.com, giris.ornek.com" autocapitalize="none" autocorrect="off">
     </div>
   </div>
 
@@ -302,6 +308,7 @@ function setFiles(list, fromDir){
   htmls.forEach(h => { const o = document.createElement('option'); o.value = h.path; o.textContent = h.path; $('main').appendChild(o); });
   const idx = htmls.find(h => h.path.toLowerCase() === 'index.html'); if (idx) $('main').value = idx.path;
   $('list').textContent = files.length ? files.length + ' dosya: ' + files.slice(0,6).map(x=>x.path).join(', ') + (files.length>6?' …':'') : 'Henüz dosya seçilmedi.';
+  refreshAutoName();
 }
 if (/; wv\)/.test(navigator.userAgent)) $('pickDir').style.display = 'none';
 // Android köprüsü (uygulama içinde yerel dosya seçici)
@@ -319,7 +326,7 @@ function nativePick(accept, multiple){
   if (!window.AndroidFiles) return;
   e.preventDefault();
   const a = await nativePick($(id).accept, false);
-  if (a.length) { const dt = new DataTransfer(); dt.items.add(a[0]); $(id).files = dt.files; if (id === 'icon') openCrop(a[0]); }
+  if (a.length) { const dt = new DataTransfer(); dt.items.add(a[0]); $(id).files = dt.files; if (id === 'icon') openCrop(a[0]); if (id === 'pdf') refreshAutoName(); }
 }));
 $('pickFiles').onclick = async () => {
   if (window.AndroidFiles) { const a = await nativePick('', true); if (a.length) setFiles(a, false); }
@@ -442,8 +449,14 @@ const SHIM_JS = `(function(){
   try {
     var orig = navigator.clipboard;
     var clip = {
-      writeText: function(t){ A.copy(String(t)); return Promise.resolve(); },
-      readText: function(){ return Promise.resolve(A.paste()); },
+      writeText: function(t){
+        if (A.copy) { A.copy(String(t)); return Promise.resolve(); }
+        return orig && orig.writeText ? orig.writeText(t) : Promise.reject(new Error('Desteklenmiyor'));
+      },
+      readText: function(){
+        if (A.paste) return Promise.resolve(A.paste());
+        return orig && orig.readText ? orig.readText() : Promise.reject(new Error('Desteklenmiyor'));
+      },
       write: function(items){
         if (orig && orig.write) return orig.write(items);
         return Promise.reject(new Error('Desteklenmiyor'));
@@ -465,7 +478,7 @@ const SHIM_JS = `(function(){
     Object.defineProperty(navigator, 'wakeLock', {configurable: true, value: wl});
   } catch(e){}
 
-  try {
+  if (A.notifPerm) try {
     var NS = function(title, opts){
       opts = opts || {};
       A.showNote(String(title), String(opts.body || ''), String(opts.tag || ''));
@@ -1741,7 +1754,23 @@ ${dataTags}
   const hasBle = P.includes('ble'), hasUsb = P.includes('usb');
   if (hasBle) permXml += '    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n' + (P.includes('loc') ? '' : '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n') + '    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />\n';
   if (hasUsb) permXml += '    <uses-feature android:name="android.hardware.usb.host" android:required="false" />\n';
+  const hosts = [];
+  (o.domains || []).forEach(d => {
+    d = String(d).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^\*\./, '');
+    if (d && !hosts.includes(d)) hosts.push(d);
+  });
+  const hostTags = hosts.map(h => '                <data android:host="' + h + '" />\n                <data android:host="*.' + h + '" />').join('\n');
+  const linkFilter = hosts.length ? `            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+${hostTags}
+            </intent-filter>
+` : '';
   const J = (c, t) => c ? t + '\n' : '';
+  const jLinks = J(hosts.length > 0, '        askLinkSettings();');
   const jFields = J(hasBle, '    private BleBridge ble;') + J(hasUsb, '    private UsbBridge usb;');
   const jInit = J(hasBle, '        if (LOCAL) { ble = new BleBridge(this, web); web.addJavascriptInterface(ble, "AndroidBle"); }') + J(hasUsb, '        if (LOCAL) { usb = new UsbBridge(this, web); web.addJavascriptInterface(usb, "AndroidUsb"); }');
   const jPerm = J(hasBle, '        if (ble != null) ble.onPermissionResult(requestCode, grantResults);');
@@ -1777,7 +1806,7 @@ ${permXml}    <queries>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-${filters}        </activity>
+${filters}${linkFilter}        </activity>
         <provider
             android:name=".ShareProvider"
             android:authorities="${o.pkg}.shareprovider"
@@ -1790,6 +1819,8 @@ ${filters}        </activity>
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import java.util.HashMap;
@@ -1848,6 +1879,7 @@ public class MainActivity extends Activity {
     private boolean pageReady = false;
     private ArrayList<Uri> pendingUris = null;
     private String pendingText = null;
+    private String pendingLink = null;
     private String shimJs = "";
 ${jFields}    private static final int PERM_REQ = 1003;
     private static final int NOTIF_REQ = 1005;
@@ -2041,6 +2073,34 @@ ${jFields}    private static final int PERM_REQ = 1003;
         }
     }
 
+    public class RemoteBridge {
+        private final Bridge b = new Bridge();
+
+        @JavascriptInterface
+        public void print() { b.print(); }
+
+        @JavascriptInterface
+        public void share(String title, String text, String url, String filesJson) { b.share(title, text, url, filesJson); }
+
+        @JavascriptInterface
+        public void copy(String text) { b.copy(text); }
+
+        @JavascriptInterface
+        public void keepAwake(boolean on) { b.keepAwake(on); }
+
+        @JavascriptInterface
+        public void beginSave(String id, String name, String mime) { b.beginSave(id, name, mime); }
+
+        @JavascriptInterface
+        public void chunkSave(String id, String data) { b.chunkSave(id, data); }
+
+        @JavascriptInterface
+        public void endSave(String id) { b.endSave(id); }
+
+        @JavascriptInterface
+        public void saveBlob(String name, String mime, String data) { b.saveBlob(name, mime, data); }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -2059,7 +2119,7 @@ ${jFields}    private static final int PERM_REQ = 1003;
         }
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
-        if (LOCAL) shimJs = readAsset("_apkshim.js");
+        shimJs = readAsset("_apkshim.js");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -2072,8 +2132,14 @@ ${jFields}    private static final int PERM_REQ = 1003;
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                if (shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
-                if (LOCAL && shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
+                if (shimJs.length() > 0) view.evaluateJavascript(shimJs, null);
                 pageReady = true;
                 flushPending();
             }
@@ -2149,13 +2215,37 @@ ${jFields}    private static final int PERM_REQ = 1003;
         web.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String ua, String cd, String mime, long len) {
-                if (LOCAL && (url.startsWith("blob:") || url.startsWith("data:"))) fetchAndSave(url, cd, mime);
+                if (url.startsWith("blob:") || url.startsWith("data:")) fetchAndSave(url, cd, mime);
                 else openExternal(url);
             }
         });
         if (LOCAL) web.addJavascriptInterface(new Bridge(), "AndroidFiles");
+        else web.addJavascriptInterface(new RemoteBridge(), "AndroidFiles");
 ${jInit}        web.loadUrl("${jstr(o.startUrl)}");
         handleIntent(getIntent());
+${jLinks}    }
+
+    private void askLinkSettings() {
+        try {
+            if (Build.VERSION.SDK_INT < 31) return;
+            SharedPreferences sp = getSharedPreferences("apk_prefs", MODE_PRIVATE);
+            if (sp.getBoolean("link_hint", false)) return;
+            sp.edit().putBoolean("link_hint", true).apply();
+            AlertDialog.Builder b = new AlertDialog.Builder(this);
+            b.setTitle("Baglantilari bu uygulamada ac");
+            b.setMessage("E-postadaki giris baglantilari bu uygulamada acilsin istiyorsan, acilan ekranda 'Desteklenen baglantilari ac' ayarini etkinlestir ve alan adini ekle.");
+            b.setNegativeButton("Simdi degil", null);
+            b.setPositiveButton("Ayarlari ac", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface d, int w) {
+                    try {
+                        startActivity(new Intent("android.settings.APP_OPEN_BY_DEFAULT_SETTINGS", Uri.parse("package:" + getPackageName())));
+                    } catch (Exception e) {
+                        toast("Ayarlar acilamadi: " + e);
+                    }
+                }
+            });
+            b.show();
+        } catch (Exception e) { }
     }
 
     private String readAsset(String name) {
@@ -2310,6 +2400,18 @@ ${jInit}        web.loadUrl("${jstr(o.startUrl)}");
     private void handleIntent(Intent it) {
         if (it == null) return;
         String act = it.getAction();
+        if (Intent.ACTION_VIEW.equals(act) && it.getData() != null
+                && ("http".equals(it.getData().getScheme()) || "https".equals(it.getData().getScheme()))) {
+            String link = it.getData().toString();
+            it.setAction(null);
+            if (LOCAL) {
+                pendingLink = link;
+                if (pageReady) flushPending();
+            } else {
+                web.loadUrl(link);
+            }
+            return;
+        }
         ArrayList<Uri> uris = new ArrayList<Uri>();
         String text = null;
         if (Intent.ACTION_VIEW.equals(act) && it.getData() != null) {
@@ -2331,6 +2433,11 @@ ${jInit}        web.loadUrl("${jstr(o.startUrl)}");
     }
 
     private void flushPending() {
+        if (pendingLink != null) {
+            String l = pendingLink;
+            pendingLink = null;
+            js("window.dispatchEvent(new CustomEvent('apklink',{detail:{url:" + JSONObject.quote(l) + "}}))");
+        }
         final ArrayList<Uri> u = pendingUris;
         final String t = pendingText;
         pendingUris = null;
@@ -2641,7 +2748,7 @@ async function srcDel(id){
 
 function el(t, c, x){ const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
 const fmt = ms => new Date(ms).toLocaleDateString('tr-TR', {day:'2-digit', month:'short', year:'numeric'});
-let editing = null, level = 'adv', autoIconBlob = null;
+let editing = null, level = 'adv', autoIconBlob = null, nameEdited = false, domainsEdited = false;
 
 // ---- Görünümler ----
 function route(){
@@ -2756,10 +2863,14 @@ function openEditor(rec, lvl){
   } else {
     $('name').value = 'Uygulamam'; pkgEdited = false; syncPkg(); setTypes([]); setPerms([]);
     $('ver').value = '1.0'; $('ori').value = 'unspecified'; $('full').checked = false;
-    if (level === 'quick') { $('banner').textContent = 'Hızlı mod: ad, paket adı, ikon ve ayarlar otomatik belirlenir.'; $('banner').hidden = false; }
+    if (level === 'quick') { $('banner').textContent = 'Hızlı mod: paket adı ve ayarlar otomatik belirlenir. Adı ve ikonu istersen değiştirebilirsin.'; $('banner').hidden = false; }
     else $('banner').hidden = true;
   }
-  $('advCard').hidden = level === 'quick';
+  nameEdited = false; domainsEdited = false;
+  $('domains').value = rec && rec.domains ? rec.domains : '';
+  $('toAdv').hidden = level !== 'quick';
+  $('advCard').classList.toggle('q', level === 'quick');
+  if (level === 'quick') updateAutoIcon();
   location.hash = '#new';
   route();
 }
@@ -2818,6 +2929,7 @@ function detectTypes(t){
   if (/text|\.txt|\.csv|\.json|\.html?|\.md/.test(a)) out.push('text');
   if (/audio|video|\.mp3|\.mp4|\.wav/.test(a)) out.push('media');
   if (!out.length) out.push(/pdf/.test(t) ? 'pdf' : 'all');
+  if (/apktext/.test(t) && !out.includes('text') && !out.includes('all')) out.push('text');
   return out;
 }
 async function contentText(){
@@ -2826,6 +2938,24 @@ async function contentText(){
     if (mode === 'paste') return $('paste').value;
   } catch(e){}
   return '';
+}
+const PLATFORM_HOSTS = ['vercel.app', 'web.app', 'firebaseapp.com', 'netlify.app', 'github.io', 'pages.dev', 'herokuapp.com', 'onrender.com', 'glitch.me', 'replit.app', 'repl.co', 'azurewebsites.net', 'appspot.com', 'workers.dev', 'supabase.co', 'fly.dev', 'railway.app', 'blogspot.com', 'wordpress.com'];
+function hostGuess(h){
+  h = h.toLowerCase().replace(/^www\./, '');
+  const p = h.split('.');
+  if (p.length <= 2) return h;
+  const two = p.slice(-2).join('.');
+  if (PLATFORM_HOSTS.includes(two)) return h;
+  const sl = ['co', 'com', 'org', 'net', 'gov', 'edu', 'ac'];
+  return (p[p.length - 1].length === 2 && sl.includes(p[p.length - 2])) ? p.slice(-3).join('.') : two;
+}
+function linkDomains(){
+  try {
+    let u = $('url').value.trim();
+    if (!u) return '';
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    return hostGuess(new URL(u).hostname);
+  } catch(e){ return ''; }
 }
 function titleCase(s){ return s.replace(/[-_.]+/g, ' ').trim().replace(/\s+/g, ' ').replace(/(^|\s)\S/g, c => c.toUpperCase()); }
 async function guessName(){
@@ -2865,13 +2995,15 @@ async function makeAutoIcon(name){
   return new Promise(r => c.toBlob(r, 'image/png'));
 }
 async function fillAuto(){
-  const name = ((await guessName()) || '').slice(0, 28).trim() || 'Uygulamam';
+  const typed = $('name').value.trim();
+  const name = (nameEdited && typed) ? typed.slice(0, 28) : (((await guessName()) || '').slice(0, 28).trim() || 'Uygulamam');
   $('name').value = name;
   const base = 'com.example.' + slugPkg(name), used = loadApps().map(a => a.pkg);
   let p = base, i = 2;
   while (used.includes(p)) p = base + (i++);
   pkgEdited = true; $('pkg').value = p;
   $('ver').value = '1.0'; $('ori').value = 'unspecified'; $('full').checked = false;
+  if (mode === 'link') $('domains').value = linkDomains();
   autoIconBlob = await makeAutoIcon(name);
   const txt = await contentText();
   setTypes(detectTypes(txt)); setPerms(detectPerms(txt));
@@ -2897,7 +3029,7 @@ async function buildApk(){
     const name = $('name').value.trim() || 'Uygulama';
     const ver = $('ver').value.trim() || '1.0';
     const list = projectFiles({
-      pkg, name, ver, vc: Math.floor(Date.now() / 1000), types: getTypes(), perms: getPerms(),
+      pkg, name, ver, vc: Math.floor(Date.now() / 1000), types: getTypes(), perms: getPerms(), domains: ($('domains').value || '').split(','),
       ori: $('ori').value, full: $('full').checked,
       assets: input.startUrl === LOCAL ? withShim(input.assets) : input.assets,
       startUrl: input.startUrl, iconBuf
@@ -2967,7 +3099,7 @@ async function buildApk(){
     const now = Date.now();
     const rec = {
       id: editing ? editing.id : 'a' + now, name, pkg, repo: rname, owner, ver,
-      ori: $('ori').value, full: $('full').checked, types: getTypes(), perms: getPerms(), created: editing ? editing.created : now, updated: now,
+      ori: $('ori').value, full: $('full').checked, types: getTypes(), perms: getPerms(), domains: ($('domains').value || '').trim(), created: editing ? editing.created : now, updated: now,
       apkUrl: apk.browser_download_url,
       icon: iconBuf ? await thumb(iconBuf) : ((editing && editing.icon) || '')
     };
@@ -3086,6 +3218,87 @@ $('cOk').onclick = async () => {
 };
 $('icon').addEventListener('change', e => { const f = e.target.files[0]; if (f && f !== iconCurrent) openCrop(f); });
 $('icPrev').onclick = () => { const f = iconSrc || iconCurrent; if (f) openCrop(f); else $('icon').click(); };
+
+// ---- Paylaşılan / "birlikte aç" ile gelen içerik ----
+function openWith(m){
+  openEditor(null, 'quick');
+  document.querySelector('.tabs button[data-m="' + m + '"]').click();
+}
+function setInputFile(input, file){
+  const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+}
+function sharedBanner(txt){ $('banner').textContent = txt; $('banner').hidden = false; }
+window.addEventListener('apkfile', e => {
+  e.preventDefault();
+  const fl = (e.detail && e.detail.files) || [];
+  const f = fl[0];
+  if (!f) return;
+  const n = (f.name || '').toLowerCase(), t = (f.type || '').toLowerCase();
+  if (t === 'application/pdf' || /\.pdf$/.test(n)) {
+    openWith('pdf'); setInputFile($('pdf'), f); refreshAutoName();
+    sharedBanner('Paylaşılan PDF eklendi: ' + f.name);
+  } else if (t === 'text/html' || /\.html?$/.test(n)) {
+    openWith('file'); setFiles([f], false);
+    sharedBanner('Paylaşılan HTML eklendi: ' + f.name);
+  } else if (t.indexOf('image/') === 0) {
+    if (location.hash === '#new') openCrop(f);
+    else $('homeMsg').textContent = 'Görsel ikon olarak kullanılmak üzere alındı: önce “+ Yeni” ile bir APK ekranı aç, sonra görseli tekrar paylaş.';
+  } else {
+    $('homeMsg').textContent = 'Paylaşılan dosya (' + f.name + ') PDF ya da HTML değil.';
+  }
+});
+window.addEventListener('apktext', e => {
+  const t = ((e.detail && e.detail.text) || '').trim();
+  const m = /https?:\/\/[^\s]+/.exec(t);
+  if (m) {
+    openWith('link'); $('url').value = m[0]; refreshAutoName();
+    sharedBanner('Paylaşılan bağlantı eklendi.');
+  } else if (/<(html|body|!doctype)/i.test(t)) {
+    openWith('paste'); $('paste').value = t; refreshAutoName();
+    sharedBanner('Paylaşılan HTML kodu eklendi.');
+  } else {
+    $('homeMsg').textContent = 'Paylaşılan metin bir bağlantı ya da HTML değil.';
+  }
+});
+$('toAdv').onclick = async () => {
+  await fillAuto();
+  if (!iconCurrent && autoIconBlob) { iconCurrent = new File([autoIconBlob], 'icon.png', {type: 'image/png'}); setInputFile($('icon'), iconCurrent); setIconPreview(iconCurrent); }
+  level = 'adv';
+  $('advCard').classList.remove('q');
+  $('toAdv').hidden = true;
+  route();
+};
+
+// ---- Hızlı mod: otomatik ad / ikon ----
+let nameTimer = null, iconTimer = null;
+function refreshAutoName(){
+  clearTimeout(nameTimer);
+  nameTimer = setTimeout(async () => {
+    if (level !== 'quick' || editing || nameEdited) return;
+    const n = ((await guessName()) || '').slice(0, 28).trim();
+    if (n) $('name').value = n;
+    updateAutoIcon();
+  }, 250);
+}
+async function updateAutoIcon(){
+  if (level !== 'quick' || iconCurrent) return;
+  const b = await makeAutoIcon($('name').value.trim() || 'Uygulamam');
+  if (level !== 'quick' || iconCurrent) return;
+  autoIconBlob = b;
+  setIconPreview(b);
+}
+$('domains').addEventListener('input', () => { domainsEdited = true; });
+$('url').addEventListener('input', () => { if (level === 'adv' && !editing && !domainsEdited && mode === 'link') $('domains').value = linkDomains(); });
+$('name').addEventListener('input', () => {
+  nameEdited = true;
+  clearTimeout(iconTimer);
+  iconTimer = setTimeout(updateAutoIcon, 300);
+});
+$('paste').addEventListener('input', refreshAutoName);
+$('url').addEventListener('input', refreshAutoName);
+$('pdf').addEventListener('change', refreshAutoName);
+$('main').addEventListener('change', refreshAutoName);
+$('pasteBtn').addEventListener('click', () => setTimeout(refreshAutoName, 400));
 
 // ---- Uygulama içi APK indirme ----
 async function inAppDownload(owner, repo, name, fallback, el){

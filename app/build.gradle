@@ -8,7 +8,7 @@ android {
         applicationId 'com.example.htmlapkdirekt'
         minSdk 21
         targetSdk 34
-        versionCode 1793613786
+        versionCode 1793636958
         versionName '1.0'
     }
 }

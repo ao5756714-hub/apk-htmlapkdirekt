@@ -32,8 +32,14 @@
   try {
     var orig = navigator.clipboard;
     var clip = {
-      writeText: function(t){ A.copy(String(t)); return Promise.resolve(); },
-      readText: function(){ return Promise.resolve(A.paste()); },
+      writeText: function(t){
+        if (A.copy) { A.copy(String(t)); return Promise.resolve(); }
+        return orig && orig.writeText ? orig.writeText(t) : Promise.reject(new Error('Desteklenmiyor'));
+      },
+      readText: function(){
+        if (A.paste) return Promise.resolve(A.paste());
+        return orig && orig.readText ? orig.readText() : Promise.reject(new Error('Desteklenmiyor'));
+      },
       write: function(items){
         if (orig && orig.write) return orig.write(items);
         return Promise.reject(new Error('Desteklenmiyor'));
@@ -55,7 +61,7 @@
     Object.defineProperty(navigator, 'wakeLock', {configurable: true, value: wl});
   } catch(e){}
 
-  try {
+  if (A.notifPerm) try {
     var NS = function(title, opts){
       opts = opts || {};
       A.showNote(String(title), String(opts.body || ''), String(opts.tag || ''));
